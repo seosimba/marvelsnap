@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Marvel Snap 덱 노트</title>
+<meta name="description" content="마블 스냅 메타 덱 30선과 내 컬렉션 기준 사용 가능 여부 — 개인 덱 빌딩 노트">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+:root {
+  --bg: #f6f6f9; --surface: #ffffff; --surface-2: #f0f0f5; --line: #e2e2ea;
+  --text: #17171c; --text-2: #55556a; --text-3: #8a8a9e;
+  --accent: #5b4bdb; --accent-soft: #ecebfd;
+  --up: #12805c; --up-soft: #e3f5ee; --down: #c4314b; --down-soft: #fde8ec;
+  --warn: #a35f00; --warn-soft: #fff1db;
+  --tier-s: #b8860b; --tier-s-bg: #fff5d6; --tier-a: #7c3aed; --tier-a-bg: #f1e9ff;
+  --tier-b: #1d6fd6; --tier-b-bg: #e5f0ff; --tier-c: #5f6472; --tier-c-bg: #eceef2;
+  --tier-ut: #8a8a9e; --tier-ut-bg: transparent;
+  --shadow: 0 1px 2px rgba(20,20,40,.06), 0 4px 16px rgba(20,20,40,.05);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f0f14; --surface: #191920; --surface-2: #22222b; --line: #2e2e39;
+    --text: #ececf3; --text-2: #a9a9bd; --text-3: #75758a;
+    --accent: #9d90ff; --accent-soft: #26233f;
+    --up: #4cd6a0; --up-soft: #13302a; --down: #ff7b91; --down-soft: #3a1820;
+    --warn: #ffb648; --warn-soft: #36270f;
+    --tier-s: #ffcf4a; --tier-s-bg: #3a2f0c; --tier-a: #c4a5ff; --tier-a-bg: #2c2045;
+    --tier-b: #7cb6ff; --tier-b-bg: #172a45; --tier-c: #b3b8c4; --tier-c-bg: #2a2d34;
+    --tier-ut: #8f8fa6; --shadow: none;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f0f14; --surface: #191920; --surface-2: #22222b; --line: #2e2e39;
+  --text: #ececf3; --text-2: #a9a9bd; --text-3: #75758a;
+  --accent: #9d90ff; --accent-soft: #26233f;
+  --up: #4cd6a0; --up-soft: #13302a; --down: #ff7b91; --down-soft: #3a1820;
+  --warn: #ffb648; --warn-soft: #36270f;
+  --tier-s: #ffcf4a; --tier-s-bg: #3a2f0c; --tier-a: #c4a5ff; --tier-a-bg: #2c2045;
+  --tier-b: #7cb6ff; --tier-b-bg: #172a45; --tier-c: #b3b8c4; --tier-c-bg: #2a2d34;
+  --tier-ut: #8f8fa6; --shadow: none;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-padding-top: 64px; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-size: 15px; line-height: 1.6; word-break: keep-all; overflow-wrap: anywhere;
+}
+a { color: var(--accent); }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+
+/* nav */
+nav.top {
+  position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--line);
+}
+nav.top .wrap { display: flex; align-items: center; gap: 4px; height: 52px; overflow-x: auto; scrollbar-width: none; }
+nav.top .wrap::-webkit-scrollbar { display: none; }
+nav.top a { flex: none; color: var(--text-2); text-decoration: none; font-size: 14px; padding: 6px 10px; border-radius: 8px; }
+nav.top a:hover { background: var(--surface-2); color: var(--text); }
+nav.top .brand { font-weight: 700; color: var(--text); margin-right: 6px; }
+#themeBtn { margin-left: auto; flex: none; border: 1px solid var(--line); background: var(--surface); color: var(--text-2); border-radius: 8px; padding: 5px 10px; font: inherit; font-size: 13px; cursor: pointer; }
+
+/* hero */
+header.hero { padding: 36px 0 12px; }
+header.hero h1 { margin: 0 0 6px; font-size: 28px; letter-spacing: -0.02em; }
+header.hero p.sub { margin: 0; color: var(--text-2); }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 20px 0 8px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; box-shadow: var(--shadow); }
+.stat b { display: block; font-size: 24px; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.stat span { color: var(--text-2); font-size: 13px; }
+
+section { padding: 28px 0 8px; }
+section > h2 { font-size: 21px; margin: 0 0 4px; letter-spacing: -0.01em; }
+section > p.lead { margin: 0 0 16px; color: var(--text-2); font-size: 14px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; box-shadow: var(--shadow); }
+.trend { margin: 0; padding-left: 20px; }
+.trend li { margin: 6px 0; }
+.trend li::marker { color: var(--text-3); }
+
+/* filters */
+.filters { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+.frow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.frow .lbl { font-size: 13px; color: var(--text-3); width: 44px; flex: none; }
+.chip-btn { border: 1px solid var(--line); background: var(--surface); color: var(--text-2); border-radius: 999px; padding: 5px 12px; font: inherit; font-size: 13px; cursor: pointer; min-height: 32px; }
+.chip-btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+:root[data-theme="dark"] .chip-btn[aria-pressed="true"] { color: #121218; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .chip-btn[aria-pressed="true"] { color: #121218; } }
+.count-line { font-size: 13px; color: var(--text-3); margin: 0 0 10px; }
+
+/* deck cards */
+.decks { display: grid; grid-template-columns: 1fr; gap: 12px; }
+@media (min-width: 900px) { .decks { grid-template-columns: 1fr 1fr; } }
+.deck { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px 12px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 8px; }
+.deck-head { display: flex; gap: 10px; align-items: flex-start; }
+.tier { flex: none; width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; font-weight: 800; font-size: 15px; }
+.tier.S { color: var(--tier-s); background: var(--tier-s-bg); }
+.tier.A { color: var(--tier-a); background: var(--tier-a-bg); }
+.tier.B { color: var(--tier-b); background: var(--tier-b-bg); }
+.tier.C { color: var(--tier-c); background: var(--tier-c-bg); }
+.tier.UT { color: var(--tier-ut); border: 1.5px dashed var(--tier-ut); font-size: 11px; }
+.tier.REF { color: var(--text-3); background: var(--surface-2); font-size: 11px; }
+.deck-title { flex: 1; min-width: 0; }
+.deck-title h3 { margin: 0; font-size: 16px; line-height: 1.35; letter-spacing: -0.01em; }
+.deck-title .no { color: var(--text-3); font-weight: 600; margin-right: 4px; font-variant-numeric: tabular-nums; }
+.tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+.tag { font-size: 12px; padding: 1px 8px; border-radius: 6px; background: var(--surface-2); color: var(--text-2); white-space: nowrap; }
+.tag.up { background: var(--up-soft); color: var(--up); }
+.tag.down { background: var(--down-soft); color: var(--down); }
+.own { font-size: 12.5px; font-weight: 600; padding: 3px 9px; border-radius: 7px; white-space: nowrap; flex: none; }
+.own.ok { background: var(--up-soft); color: var(--up); }
+.own.one { background: var(--warn-soft); color: var(--warn); }
+.own.many { background: var(--down-soft); color: var(--down); }
+.ev { font-size: 13px; color: var(--text-2); margin: 0; font-variant-numeric: tabular-nums; }
+.list-label { font-size: 12px; color: var(--text-3); margin: 2px 0 -2px; }
+.cards { display: flex; flex-wrap: wrap; gap: 5px; }
+.card { font-size: 13px; padding: 3px 9px; border-radius: 7px; background: var(--surface-2); border: 1px solid transparent; }
+.card.miss { background: var(--down-soft); color: var(--down); border-color: color-mix(in srgb, var(--down) 35%, transparent); }
+.card.miss::after { content: " ✕"; font-size: 11px; }
+.card.flex { border: 1px dashed var(--text-3); }
+.card .alt-miss { color: var(--down); text-decoration: line-through; }
+.notes { margin: 0; padding-left: 18px; font-size: 13px; color: var(--text-2); }
+.deck-foot { display: flex; justify-content: flex-end; }
+.copy { border: none; background: none; color: var(--text-3); font: inherit; font-size: 12.5px; cursor: pointer; padding: 4px 6px; border-radius: 6px; }
+.copy:hover { background: var(--surface-2); color: var(--text); }
+.empty { color: var(--text-3); padding: 24px; text-align: center; border: 1px dashed var(--line); border-radius: 14px; }
+
+/* tables */
+.tbl-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12.5px; color: var(--text-3); font-weight: 600; background: var(--surface-2); white-space: nowrap; }
+tr:last-child td { border-bottom: none; }
+td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.nerf { color: var(--down); font-weight: 600; }
+.buff { color: var(--up); font-weight: 600; }
+.grid2 { display: grid; grid-template-columns: 1fr; gap: 14px; }
+@media (min-width: 900px) { .grid2 { grid-template-columns: 1fr 1fr; } }
+h3.sub { font-size: 15px; margin: 18px 0 8px; }
+details { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 0 16px; margin-bottom: 10px; }
+details > summary { cursor: pointer; padding: 13px 0; font-weight: 600; list-style: none; }
+details > summary::-webkit-details-marker { display: none; }
+details > summary::before { content: "▸ "; color: var(--text-3); }
+details[open] > summary::before { content: "▾ "; }
+details > div { padding: 0 0 14px; font-size: 14px; }
+details ul { padding-left: 18px; margin: 6px 0; }
+.muted { color: var(--text-3); font-size: 13px; }
+footer { padding: 32px 0 48px; color: var(--text-3); font-size: 13px; }
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px); background: var(--text); color: var(--bg); padding: 8px 14px; border-radius: 10px; font-size: 13px; opacity: 0; transition: .2s; pointer-events: none; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+@media (max-width: 640px) {
+  header.hero h1 { font-size: 24px; }
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .frow .lbl { width: 100%; }
+}
+</style>
+</head>
+<body>
+<nav class="top" aria-label="섹션">
+  <div class="wrap">
+    <a class="brand" href="#top">덱 노트</a>
+    <a href="#decks">덱 30선</a>
+    <a href="#collection">내 컬렉션</a>
+    <a href="#season">시즌·패치</a>
+    <a href="#basics">기본 규칙</a>
+    <a href="#sources">출처·주의</a>
+    <button id="themeBtn" type="button" aria-label="테마 전환">테마</button>
+  </div>
+</nav>
+
+<main class="wrap" id="top">
+  <header class="hero">
+    <h1>Marvel Snap 덱 노트</h1>
+    <p class="sub" id="heroSub">메타 기준일 — · Knights of Avalon 시즌 · 11/12 OTA 직후</p>
+    <div class="stats" id="stats"></div>
+  </header>
+
+  <section id="trend" aria-labelledby="trend-h">
+    <h2 id="trend-h">이번 주 메타 흐름</h2>
+    <div class="panel">
+      <ul class="trend">
+        <li><b>Anti-Polar Magneto × Arthur Pendragon (4코스트 치트)</b> 계열이 시즌 최대 화두. Untapped 인기 1위 아키타입, SnapVault S티어에도 2개. Lancelot · Mordred · Captain Britain 등 시즌 신규 카드가 그대로 들어감.</li>
+        <li><b>Zombie Galacti / Shuri / Wong</b> — SnapVault 최대 표본(2,476판)으로 60% · +0.71 큐브. 근거가 가장 탄탄한 고성능 덱.</li>
+        <li><b>Stardust / Gambit Horseman of Death</b> 생성·테크 덱 — Sasquatch형이 SnapVault S. 피니셔만 바꾼 변형이 다수. Mobius 너프 영향권.</li>
+        <li><b>Zombie Horde</b> — 사용량이 많고 성적이 양호 (SnapComplete 5,526판 59.1%). Zombie Scarlet Witch 너프(-1 파워).</li>
+        <li><b>전통 강자</b> — High Evo · Fantomex는 두 출처 대표본으로 확인, Patriot은 Onslaught 버프 수혜. Destroy · Surfer · Thor · Galactus 등은 Untapped 단독 근거.</li>
+        <li>많이 쓰이지만 승률은 평범 — <b>Sandstorm Patriot</b> (최다 사용 7,093판, 승률 51%).</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="decks" aria-labelledby="decks-h">
+    <h2 id="decks-h">고승률 덱 30선</h2>
+    <p class="lead">티어는 SnapVault 티어를 기준점으로, 다른 출처에서 1,000판 이상 확인되면 한 단계 올린 <b>잠정 평가</b>입니다. Untapped 단독 근거 덱은 티어를 매기지 않았습니다. 빨간 카드 = 내가 아직 없는 카드.</p>
+    <div class="filters" role="group" aria-label="덱 필터">
+      <div class="frow" id="fTier"><span class="lbl">티어</span></div>
+      <div class="frow" id="fOwn"><span class="lbl">보유</span></div>
+      <div class="frow" id="fFam"><span class="lbl">계열</span></div>
+    </div>
+    <p class="count-line" id="countLine"></p>
+    <div class="decks" id="deckList"></div>
+  </section>
+
+  <section id="collection" aria-labelledby="coll-h">
+    <h2 id="coll-h">내 컬렉션 — 미보유 카드</h2>
+    <p class="lead" id="collLead"></p>
+    <h3 class="sub">획득 우선순위 (메타 덱 30선 등장 수 기준)</h3>
+    <div class="tbl-wrap"><table id="prioTable"></table></div>
+    <p class="muted" style="margin-top:8px">“얻으면 바로 열리는 덱” = 그 카드 한 장만 없어서 못 쓰던 덱. Scarlet Witch QoC + Anti-Polar Magneto 두 장이면 바로 쓸 수 있는 덱이 크게 늘어납니다.</p>
+    <h3 class="sub">미보유 Series 5 전체</h3>
+    <div class="cards" id="unownedAll"></div>
+    <p class="muted" style="margin-top:8px">Series 4 이하 미보유 여부는 아직 반영 전입니다.</p>
+  </section>
+
+  <section id="season" aria-labelledby="season-h">
+    <h2 id="season-h">시즌 · 패치</h2>
+    <p class="lead">Knights of Avalon (11/3 ~ 11/30) · 다음 OTA 12/3, 패치 12/15</p>
+    <div class="grid2">
+      <div>
+        <h3 class="sub" style="margin-top:0">시즌 신규 카드</h3>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>카드</th><th>코/파</th><th>능력</th><th>출시</th></tr></thead>
+          <tbody>
+            <tr><td>Arthur Pendragon<br><span class="muted">시즌패스</span></td><td class="num">4/4</td><td>On Reveal: Excalibur(1/1, Ongoing: 4코스트 이상 아군 +2)를 무료로 여기에 꺼냄</td><td class="num">11/3</td></tr>
+            <tr><td>Merlin of Avalon<br><span class="muted">슈퍼 프리미엄</span></td><td class="num">1/2</td><td>On Reveal: The Grand Design(6/0, 생성 카드 1장 낼 때마다 1코 감소, 다른 각 로케이션 아군 1장 +5)을 손에 추가</td><td class="num">11/3</td></tr>
+            <tr><td>Captain Britain</td><td class="num">2/3</td><td>4코스트 이상 카드를 낸 뒤: 그 카드 +1 파워, 손의 카드 1장 -1 코스트</td><td class="num">11/3</td></tr>
+            <tr><td>Mordred</td><td class="num">3/4</td><td>Ongoing: 여기 있는 더 높은 코스트 카드 1장당 +2 파워</td><td class="num">11/5</td></tr>
+            <tr><td>Lancelot</td><td class="num">4/6</td><td>Ongoing: 파워가 증가된 아군 +1 파워</td><td class="num">11/10</td></tr>
+            <tr><td>Elder Dragon of the Moon</td><td class="num">?</td><td class="muted">미출시</td><td class="num">11/17</td></tr>
+            <tr><td>Knight's Vow<br><span class="muted">이벤트 패스</span></td><td class="num">?</td><td class="muted">미출시</td><td class="num">11/19</td></tr>
+            <tr><td>Sir Percy Black Knight</td><td class="num">?</td><td class="muted">미출시</td><td class="num">11/24</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+      <div>
+        <h3 class="sub" style="margin-top:0">11/12 OTA (이번 달 유일)</h3>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>카드</th><th>변경</th></tr></thead>
+          <tbody>
+            <tr><td><span class="nerf">너프</span> Mobius M. Mobius</td><td class="num">3/3 → 3/2</td></tr>
+            <tr><td><span class="nerf">너프</span> Zombie Scarlet Witch</td><td class="num">3/4 → 3/3</td></tr>
+            <tr><td><span class="buff">버프</span> Captain Britain</td><td class="num">2/2 → 2/3</td></tr>
+            <tr><td><span class="buff">버프</span> Mister Sinister</td><td class="num">2/2 → 2/3</td></tr>
+            <tr><td><span class="buff">버프</span> Sword of Fu Xi (Lin Lie 토큰)</td><td class="num">2/2 → 2/3</td></tr>
+            <tr><td><span class="buff">버프</span> The Ten Rings (Shang-Chi, Master of the Rings 토큰)</td><td class="num">2/2 → 2/3, 강화형 2/3 → 2/5</td></tr>
+            <tr><td><span class="buff">버프</span> Shanna</td><td class="num">3/4 → 3/5</td></tr>
+            <tr><td><span class="buff">버프</span> Kang the Conqueror</td><td class="num">3/4 → 3/5</td></tr>
+            <tr><td><span class="buff">버프</span> Spider-Man Noir</td><td class="num">4/5 → 4/6</td></tr>
+            <tr><td><span class="buff">버프</span> Onslaught</td><td class="num">6/8 → 6/9</td></tr>
+          </tbody>
+        </table></div>
+        <p class="muted" style="margin-top:8px">개발사: “선두 덱들이 크게 앞서지 않는 안정적인 메타”. 일반 Shang-Chi는 버프 대상 아님. <a href="https://marvelsnap.com/balance-update-november-12-2026/" target="_blank" rel="noopener">공식 공지</a></p>
+      </div>
+    </div>
+  </section>
+
+  <section id="basics" aria-labelledby="basics-h">
+    <h2 id="basics-h">기본 규칙 · 덱 빌딩</h2>
+    <details open>
+      <summary>게임 기본 규칙</summary>
+      <div><ul>
+        <li><b>덱</b>: 12장, 같은 카드 중복 불가. 기본 6턴, N턴에 N에너지 (효과로 변동 가능)</li>
+        <li><b>승리</b>: 상대보다 더 많은 로케이션에서 이기면 승리 (1승 2무도 승리). 이긴 수가 같으면 총 파워 합 (Bar With No Name 같은 예외 있음)</li>
+        <li><b>로케이션</b>: 1·2·3턴에 하나씩 공개 — 덱 플랜을 망가뜨릴 수 있어 유연성이 중요</li>
+        <li><b>공개 순서</b>: 이기고 있는 로케이션이 많은 쪽 → 같으면 총 파워 높은 쪽 → 그래도 같으면 무작위</li>
+        <li><b>큐브</b>: 기본 1. 스냅은 각자 1회, 다음 턴 시작 시 판돈 2배 적용 → 상대는 그 전에 후퇴하면 기존 판돈만 잃음. 마지막 턴 자동 2배, 최대 8큐브</li>
+        <li><b>랭크</b>: 1~100, 100 도달 시 Infinite. 승률보다 <b>평균 큐브</b>가 랭크업 속도를 결정 — 이길 판은 크게, 질 판은 일찍 후퇴</li>
+        <li><b>카드 풀</b>: 스타터 별도 + 컬렉션 레벨에 따라 Series 1~5. 신규 카드는 주로 Series 5로 나왔다가 하향</li>
+      </ul></div>
+    </details>
+    <details>
+      <summary>덱 빌딩 원칙</summary>
+      <div><ul>
+        <li><b>코어 4~6장</b>: 승리 플랜 (시너지 엔진 + 페이오프)</li>
+        <li><b>커브</b>: 1~6턴 에너지를 낭비 없이. 특히 5~6턴 마무리</li>
+        <li><b>유연 카드 / 테크 2~3장</b>: 메타 대응</li>
+        <li><b>큐브 관점</b>: 판세를 일찍 읽을 수 있는 덱이 스냅·후퇴 판단에 유리</li>
+      </ul></div>
+    </details>
+    <details>
+      <summary>자주 보이는 테크 카드</summary>
+      <div><ul>
+        <li><b>Shadow King</b>: 이 로케이션 카드 파워를 기본값으로 (양쪽 모두. Ongoing 버프는 다시 적용, Luke Cage로 못 막음)</li>
+        <li><b>Mobius M. Mobius</b>: 내 코스트 증가 방지 + 상대 코스트 감소 차단 (11/12 너프 3/2)</li>
+        <li><b>Cosmo</b>: 이 로케이션 On Reveal 봉쇄 (양쪽 모두)</li>
+        <li><b>Luke Cage</b>: 내 카드 파워 감소 방지</li>
+        <li><b>Enchantress</b>: 이 로케이션 Ongoing 능력 제거 (내 카드 포함)</li>
+        <li><b>Rogue</b>: 이 로케이션 적 Ongoing 카드 1장의 능력을 빼앗음</li>
+      </ul></div>
+    </details>
+  </section>
+
+  <section id="sources" aria-labelledby="src-h">
+    <h2 id="src-h">출처 · 해석 주의</h2>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>출처</th><th>기간 / 모집단</th><th>특징</th></tr></thead>
+      <tbody>
+        <tr><td><a href="https://www.snapvault.app/meta" target="_blank" rel="noopener">SnapVault</a></td><td>최근 7일, 전체 모드</td><td>승률 95% 신뢰구간 하한으로 순위 → 표본 크기 반영. 100판 미만은 Rising</td></tr>
+        <tr><td><a href="https://snapcomplete.com/play/decks" target="_blank" rel="noopener">SnapComplete</a></td><td>이번 주, Ranked + Conquest</td><td>승률 보정(smoothing). 판수가 가장 큼</td></tr>
+        <tr><td><a href="https://snap.untapped.gg/en/meta" target="_blank" rel="noopener">Untapped.gg</a></td><td>30일, 랭크 10~79, Pool 3+</td><td>승률이 크게 높게 나옴 → 절대값 비교 금지</td></tr>
+        <tr><td><a href="https://snap.fan/cards/tier-list/" target="_blank" rel="noopener">snap.fan 카드 티어</a></td><td>11/13 갱신</td><td>SnapComplete 데이터 기반 → 독립 검증 아님</td></tr>
+      </tbody>
+    </table></div>
+    <ul class="muted" style="padding-left:18px">
+      <li>SnapComplete · Untapped는 11/12 OTA 이전 판이 섞였을 가능성이 큼. SnapVault는 밸런스 변경 덱 제외 정책을 밝혔지만 실제 처리는 불명확</li>
+      <li>OTA 영향(⬆ 버프 카드 포함 · ⬇ 너프 카드 포함)은 표시만 했고 티어에는 반영하지 않음 — 다음 주 데이터로 확인 필요</li>
+      <li>출처마다 모집단이 달라 같은 덱도 승률이 10%p 이상 차이 남</li>
+    </ul>
+  </section>
+</main>
+
+<footer class="wrap">
+  비공식 개인 덱 빌딩 노트입니다. 수치는 각 트래커 사이트의 공개 데이터를 정리한 것으로, 집계 시점에 따라 달라질 수 있습니다.
+</footer>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="data.js"></script>
+<script>
+(function () {
+  const D = window.SNAP_DATA;
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  /* theme */
+  const root = document.documentElement;
+  const btn = $("themeBtn");
+  function applyTheme(t) { if (t) root.setAttribute("data-theme", t); else root.removeAttribute("data-theme"); }
+  try { applyTheme(localStorage.getItem("snap-theme")); } catch (e) {}
+  btn.addEventListener("click", () => {
+    const dark = root.getAttribute("data-theme") === "dark" ||
+      (!root.getAttribute("data-theme") && matchMedia("(prefers-color-scheme: dark)").matches);
+    const next = dark ? "light" : "dark";
+    applyTheme(next);
+    try { localStorage.setItem("snap-theme", next); } catch (e) {}
+  });
+
+  /* ownership */
+  const UNOWNED = new Set(D.unowned.map((u) => u.name));
+  const cardMissing = (c) => c.options ? c.options.every((o) => UNOWNED.has(o)) : UNOWNED.has(c.name);
+  const missingOf = (list) => list.cards.filter(cardMissing).map((c) => c.options ? c.options.join(" / ") : c.name);
+  function deckMissing(d) {
+    let best = null;
+    for (const l of d.lists) { const m = missingOf(l); if (!best || m.length < best.length) best = m; }
+    return best || [];
+  }
+  D.decks.forEach((d) => { d._miss = deckMissing(d); });
+  D.refs.forEach((d, i) => { d._miss = deckMissing(d); d.tier = "REF"; d.no = null; d._refIdx = i; });
+
+  const TIER_LABEL = { S: "S", A: "A", B: "B", C: "C", UT: "UT", REF: "참고" };
+  const TIER_ORDER = { S: 0, A: 1, B: 2, C: 3, UT: 4, REF: 5 };
+
+  /* hero */
+  const ready = D.decks.filter((d) => d._miss.length === 0).length;
+  const one = D.decks.filter((d) => d._miss.length === 1).length;
+  $("heroSub").textContent = `메타 기준일 ${D.asOf} · Knights of Avalon 시즌 2주차 · 11/12 OTA 직후`;
+  $("stats").innerHTML = [
+    [D.decks.length, "메타 덱"], [ready, "지금 바로 사용 가능"], [one, "1장만 부족"], [D.unowned.length, "미보유 Series 5"],
+  ].map(([n, l]) => `<div class="stat"><b>${n}</b><span>${l}</span></div>`).join("");
+
+  /* filters */
+  const state = { tier: "all", own: "all", fam: "all" };
+  try { Object.assign(state, JSON.parse(localStorage.getItem("snap-filters") || "{}")); } catch (e) {}
+  const fams = [...new Set(D.decks.map((d) => d.family || "기타"))].sort((a, b) => (a === "기타") - (b === "기타") || a.localeCompare(b));
+  const FILTERS = {
+    tier: [["all", "전체"], ["S", "S"], ["A", "A"], ["B", "B"], ["C", "C"], ["UT", "UT 단독"], ["REF", "참고"]],
+    own: [["all", "전체"], ["ok", "바로 사용"], ["one", "1장 부족"], ["many", "2장+ 부족"]],
+    fam: [["all", "전체"], ...fams.map((f) => [f, f])],
+  };
+  const rowId = { tier: "fTier", own: "fOwn", fam: "fFam" };
+  function renderFilters() {
+    for (const key of Object.keys(FILTERS)) {
+      const row = $(rowId[key]);
+      row.querySelectorAll("button").forEach((b) => b.remove());
+      for (const [val, label] of FILTERS[key]) {
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "chip-btn"; b.textContent = label;
+        b.setAttribute("aria-pressed", String(state[key] === val));
+        b.addEventListener("click", () => {
+          state[key] = val;
+          try { localStorage.setItem("snap-filters", JSON.stringify(state)); } catch (e) {}
+          renderFilters(); renderDecks();
+        });
+        row.appendChild(b);
+      }
+    }
+  }
+
+  function ownBadge(miss) {
+    if (miss.length === 0) return `<span class="own ok">✓ 바로 사용</span>`;
+    if (miss.length === 1) return `<span class="own one">1장 부족</span>`;
+    return `<span class="own many">${miss.length}장 부족</span>`;
+  }
+  function cardChip(c) {
+    if (c.options) {
+      const inner = c.options.map((o) => UNOWNED.has(o) ? `<span class="alt-miss">${esc(o)}</span>` : esc(o)).join(" / ");
+      return `<span class="card flex${cardMissing(c) ? " miss" : ""}" title="둘 중 하나 선택">${inner}</span>`;
+    }
+    return `<span class="card${UNOWNED.has(c.name) ? " miss" : ""}">${esc(c.name)}</span>`;
+  }
+  function deckHTML(d, key) {
+    const tags = [];
+    if (d.family) tags.push(`<span class="tag">${esc(d.family)}</span>`);
+    for (const o of d.ota) tags.push(`<span class="tag ${o.dir}">${o.dir === "up" ? "⬆" : "⬇"} ${esc(o.card)}</span>`);
+    const lists = d.lists.map((l, i) => `${l.label ? `<p class="list-label">${esc(l.label)}</p>` : ""}<div class="cards">${l.cards.map(cardChip).join("")}</div>`).join("");
+    const notes = d.notes && d.notes.length ? `<ul class="notes">${d.notes.map((n) => `<li>${esc(n)}</li>`).join("")}</ul>` : "";
+    const missLine = d._miss.length ? `<p class="ev" style="color:var(--down)">미보유: ${d._miss.map(esc).join(", ")}</p>` : "";
+    return `<article class="deck">
+      <div class="deck-head">
+        <div class="tier ${d.tier}" aria-label="티어 ${TIER_LABEL[d.tier]}">${TIER_LABEL[d.tier]}</div>
+        <div class="deck-title"><h3>${d.no ? `<span class="no">#${d.no}</span>` : ""}${esc(d.name)}</h3>${tags.length ? `<div class="tags">${tags.join("")}</div>` : ""}</div>
+        ${ownBadge(d._miss)}
+      </div>
+      ${d.evidence.map((e) => `<p class="ev">${esc(e)}</p>`).join("")}
+      ${missLine}
+      ${lists}
+      ${notes}
+      <div class="deck-foot"><button class="copy" type="button" data-key="${key}">카드 목록 복사</button></div>
+    </article>`;
+  }
+
+  const ALL = [...D.decks.map((d, i) => ({ d, key: "d" + i })), ...D.refs.map((d, i) => ({ d, key: "r" + i }))];
+  const byKey = Object.fromEntries(ALL.map((x) => [x.key, x.d]));
+  function renderDecks() {
+    const out = ALL.filter(({ d }) => {
+      if (state.tier === "all" ? d.tier === "REF" : d.tier !== state.tier) return false;
+      const n = d._miss.length;
+      if (state.own === "ok" && n !== 0) return false;
+      if (state.own === "one" && n !== 1) return false;
+      if (state.own === "many" && n < 2) return false;
+      if (state.fam !== "all" && (d.family || "기타") !== state.fam) return false;
+      return true;
+    }).sort((a, b) => TIER_ORDER[a.d.tier] - TIER_ORDER[b.d.tier] || (a.d.no || 0) - (b.d.no || 0));
+    $("countLine").textContent = `${out.length}개 덱 표시` + (state.tier === "all" ? " (참고 덱은 ‘참고’ 필터에서)" : "");
+    $("deckList").innerHTML = out.length ? out.map(({ d, key }) => deckHTML(d, key)).join("") : `<div class="empty">조건에 맞는 덱이 없습니다.</div>`;
+  }
+  $("deckList").addEventListener("click", (e) => {
+    const b = e.target.closest(".copy"); if (!b) return;
+    const d = byKey[b.dataset.key];
+    const text = d.lists.map((l) => (l.label ? `[${l.label}]\n` : "") + l.cards.map((c) => c.options ? c.options.join(" 또는 ") : c.name).join("\n")).join("\n\n");
+    const done = () => toast("카드 목록을 복사했어요");
+    if (navigator.clipboard) navigator.clipboard.writeText(`${d.name}\n${text}`).then(done, () => toast("복사 실패"));
+  });
+  let tt;
+  function toast(msg) { const t = $("toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(tt); tt = setTimeout(() => t.classList.remove("show"), 1600); }
+
+  /* collection */
+  $("collLead").textContent = `${D.collectionUpdated} 인게임 캡처 기준 미보유 Series 5 ${D.unowned.length}장. 이 목록에 없는 Series 5는 보유한 것으로 간주합니다.`;
+  const tierOf = (d) => TIER_LABEL[d.tier];
+  const prio = D.unowned.map((u) => {
+    const inDecks = D.decks.filter((d) => d.lists.some((l) => l.cards.some((c) => c.name === u.name || (c.options && c.options.includes(u.name)))));
+    const unlocks = D.decks.filter((d) => d._miss.length === 1 && d._miss[0] === u.name);
+    return { u, inDecks, unlocks };
+  }).sort((a, b) => b.inDecks.length - a.inDecks.length || b.unlocks.length - a.unlocks.length);
+  const fmtDecks = (arr) => arr.map((d) => `#${d.no}<span class="muted">(${tierOf(d)})</span>`).join(", ");
+  const used = prio.filter((p) => p.inDecks.length);
+  const unused = prio.filter((p) => !p.inDecks.length);
+  $("prioTable").innerHTML = `<thead><tr><th>카드</th><th>코/파</th><th>등장</th><th>들어가는 덱</th><th>얻으면 바로 열리는 덱</th></tr></thead><tbody>` +
+    used.map((p) => `<tr><td><b>${esc(p.u.name)}</b></td><td class="num">${esc(p.u.stat)}</td><td class="num">${p.inDecks.length}</td><td>${fmtDecks(p.inDecks)}</td><td>${p.unlocks.length ? fmtDecks(p.unlocks) : '<span class="muted">—</span>'}</td></tr>`).join("") +
+    `<tr><td colspan="5" class="muted">메타 30선에 없음: ${unused.map((p) => esc(p.u.name)).join(", ")}</td></tr></tbody>`;
+  $("unownedAll").innerHTML = D.unowned.map((u) => `<span class="card">${esc(u.name)} <span class="muted">${esc(u.stat)}</span></span>`).join("");
+
+  renderFilters();
+  renderDecks();
+})();
+</script>
+</body>
+</html>
