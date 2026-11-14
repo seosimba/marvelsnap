@@ -4,6 +4,7 @@
 사용: python3 tools/fetch_sv.py
 - cache/sv_cards.json   : 카드 id, 이름, 코스트, 덱 코드용 deckCode
 - cache/sv_ranked7.json : 랭크(ranked + ranked_infinite) 최근 7일, 10판 이상 덱의 12장 구성과 승패·큐브
+- cache/ut_cards.json   : Untapped 카드 데이터 (seriesStartTimestamps 첫 값 = 출시일, 0001-01-01 = 아주 오래된 카드)
 cache/ 는 커밋하지 않는다 (gitignore). build_data.py 가 읽어서 data.js 에 필요한 값만 넣는다.
 """
 import json
@@ -49,6 +50,10 @@ def main():
         if not d["hasMore"] or off >= 10000:
             break
         time.sleep(0.5)  # 서버 부담 줄이기
+    ut = get("https://snapjson.untapped.gg/v2/latest/en/cards.json")
+    (CACHE / "ut_cards.json").write_text(json.dumps(ut, ensure_ascii=False), encoding="utf-8")
+    print(f"Untapped 카드 {len(ut)}장 (출시일용)")
+
     out = {"fetchedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
            "window": "7d", "mode": "ranked", "minGames": MIN_GAMES, "decks": list(decks.values())}
     (CACHE / "sv_ranked7.json").write_text(json.dumps(out, ensure_ascii=False), encoding="utf-8")

@@ -15,7 +15,7 @@
 
 ## 갱신
 ```bash
-python3 tools/fetch_sv.py     # 랭크 7일 데이터 갱신 (약 30초, 서버 부담 줄이려 페이지마다 0.5초 쉼)
+python3 tools/fetch_sv.py     # 랭크 7일 데이터 + 카드 출시일(Untapped) 갱신 (약 30초, 서버 부담 줄이려 페이지마다 0.5초 쉼)
 python3 tools/build_data.py   # 최신 meta-*.md + unowned.md + disliked.md + cache/ → data.js
 git add -A && git commit -m "..." && git push
 ```

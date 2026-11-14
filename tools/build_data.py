@@ -12,6 +12,7 @@
 """
 import itertools
 import json
+from datetime import date, datetime, timedelta, timezone
 import re
 import sys
 from collections import Counter
@@ -24,12 +25,20 @@ CACHE = ROOT / "cache"
 MIN_GAMES = 100   # 랭크 7일 이 판수 미만 빌드는 목록에서 제외 (사용자 요청)
 MIN_WR = 58.0     # 랭크 7일 승률이 이 값 이하인 빌드는 제외 (사용자 요청: "58% 이하는 선택 안 함")
 EXCLUDED_TIERS = {"C": "티어 C 이하", "UT": "티어 C 이하"}  # 사용자 요청: 옛날 카드 위주라 재미없어서 제외
+RECENT_DAYS = 365  # 12장이 모두 이 기간보다 전에 출시된 카드면 제외 (사용자 요청) — 기준일 = 랭크 데이터 수집일
+OLD_ONLY = "1년 넘은 카드만"
 MIN_PRED = 100    # 미보유 카드 없이 플레이된 같은 계열 판수가 이보다 적으면 예측하지 않음
 MIN_SUB = 30      # 대체 후보 카드가 (미보유 카드를 모두 뺀) 같은 계열 리스트에서 쓰인 최소 판수
 SAME_ARCH = 8     # 원본 빌드와 12장 중 이만큼 겹치면 같은 계열로 봄
 RIDGE_LAMBDA = 200  # 카드 기여도 추정 축소 강도 (가상 판수)
 SHRINK_K = 100    # 원본 승률을 같은 계열 평균 쪽으로 당기는 강도 (가상 판수)
 CARD_COST = {}    # main에서 채움 (대체 카드 짝 표시용)
+REL = {}          # 카드 id → 출시일(date) 또는 None(아주 오래됨). main에서 채움
+RECENT_CUT = [date(1970, 1, 1)]  # 이 날짜 이후 출시면 '최근 카드'
+
+
+def has_recent(ids) -> bool:
+    return any(REL.get(c) and REL[c] >= RECENT_CUT[0] for c in ids)
 
 TIER_HEADERS = {
     "### S 티어": "S",
@@ -176,9 +185,27 @@ def load_cache():
     try:
         cards = json.loads((CACHE / "sv_cards.json").read_text(encoding="utf-8"))
         ranked = json.loads((CACHE / "sv_ranked7.json").read_text(encoding="utf-8"))
+        ut = json.loads((CACHE / "ut_cards.json").read_text(encoding="utf-8"))
     except FileNotFoundError:
-        raise SystemExit("[오류] cache/ 가 없습니다. 먼저 python3 tools/fetch_sv.py 를 실행하세요.")
-    return cards, ranked
+        raise SystemExit("[오류] cache/ 가 없거나 오래됐습니다. 먼저 python3 tools/fetch_sv.py 를 실행하세요.")
+    return cards, ranked, ut
+
+
+def release_dates(ut_cards):
+    """Untapped seriesStartTimestamps 첫 값 = 출시일. 0001-01-01(추적 이전) 이나 값 없음 = None(아주 오래됨)."""
+    out = {}
+    for c in ut_cards:
+        ts = c.get("seriesStartTimestamps") or []
+        d = None
+        if ts:
+            try:
+                d = datetime.fromtimestamp(ts[0] / 1000, timezone.utc).date()
+            except (OverflowError, OSError, ValueError):
+                d = None
+            if d and d.year < 2000:
+                d = None
+        out[c["defId"]] = d
+    return out
 
 
 class Resolver:
@@ -322,8 +349,9 @@ def build_deck(d, res, unowned, banned, db_by_sig, db):
                 "miss": sorted(set(ids) & unowned),
             }
             b["banned"] = sorted({banned[c] for c in ids if c in banned})
+            b["oldOnly"] = not has_recent(ids)
             b["included"] = (bool(b["stats"] and b["stats"]["games"] >= MIN_GAMES)
-                             and b["stats"]["wr"] > MIN_WR and not b["banned"])
+                             and b["stats"]["wr"] > MIN_WR and not b["banned"] and not b["oldOnly"])
             if b["included"] and b["miss"]:
                 b["pred"] = predict(ids, b["stats"], unowned, db, avoid=set(banned))
             builds.append(b)
@@ -338,8 +366,11 @@ def main():
     decks, refs = parse_meta(meta)
     unowned_list, coll_date = parse_unowned(NOTES / "unowned.md")
     banned_list, disliked_date = parse_disliked(NOTES / "disliked.md")
-    sv_cards, ranked = load_cache()
+    sv_cards, ranked, ut_cards = load_cache()
     res = Resolver(sv_cards)
+    REL.update(release_dates(ut_cards))
+    fetched = datetime.fromisoformat(ranked["fetchedAt"]).date()
+    RECENT_CUT[0] = fetched - timedelta(days=RECENT_DAYS)
     CARD_COST.update({c["id"]: c["cost"] for c in sv_cards})
 
     for u in unowned_list:
@@ -364,7 +395,7 @@ def main():
             inc = []
 
         def why(b):
-            r = ([tier_reason] if tier_reason else []) + list(b["banned"])
+            r = ([tier_reason] if tier_reason else []) + ([OLD_ONLY] if b["oldOnly"] else []) + list(b["banned"])
             if not (b["stats"] and b["stats"]["games"] >= MIN_GAMES):
                 r.append(f"랭크 7일 {MIN_GAMES}판 미만")
             elif b["stats"]["wr"] <= MIN_WR:
@@ -411,7 +442,8 @@ def main():
     discovered = []
     for x in db:
         st = stat_of(x["stats"])
-        if st["games"] < MIN_GAMES or st["wr"] <= MIN_WR or (x["set"] & unowned) or (x["set"] & set(banned)):
+        if (st["games"] < MIN_GAMES or st["wr"] <= MIN_WR or (x["set"] & unowned) or (x["set"] & set(banned))
+                or not has_recent(x["set"])):
             continue
         if x["set"] in note_sets:
             continue  # 노트에 있는 빌드 (목록에 있거나, 티어·매직 등으로 일부러 뺀 것)
@@ -436,7 +468,8 @@ def main():
     used |= set(banned)
     cards = {
         cid: {"name": res.by_id[cid]["name"], "cost": res.by_id[cid]["cost"],
-              "power": res.by_id[cid]["power"], "code": res.by_id[cid]["deckCode"]}
+              "power": res.by_id[cid]["power"], "code": res.by_id[cid]["deckCode"],
+              "rel": REL[cid].isoformat() if REL.get(cid) else None}
         for cid in sorted(used)
     }
     for d in out_decks:  # 코스트 → 이름 순 정렬 (화면·덱 코드 공통)
@@ -452,7 +485,8 @@ def main():
         "asOf": as_of,
         "collectionUpdated": coll_date,
         "rankedSource": {"site": "SnapVault", "window": "7일", "mode": "랭크", "fetchedAt": ranked["fetchedAt"],
-                         "minGames": MIN_GAMES, "minWr": MIN_WR, "minPred": MIN_PRED, "lists": len(db)},
+                         "minGames": MIN_GAMES, "minWr": MIN_WR, "minPred": MIN_PRED,
+                         "recentCut": RECENT_CUT[0].isoformat(), "lists": len(db)},
         "cards": cards,
         "decks": out_decks,
         "excluded": excluded,
