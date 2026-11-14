@@ -458,7 +458,7 @@ window.__snapBoot = function () {
     [D.decks.length, `조건 통과 덱`], [nOk, "지금 바로 사용 가능"], [(D.discovered || []).length, "발견 덱 (내 카드로 바로)"], [D.unowned.length, "미보유 Series 5"],
   ].map(([n, l]) => `<div class="stat"><b>${n}</b><span>${l}</span></div>`).join("");
   const fetched = RS.fetchedAt.replace("T", " ").slice(0, 16) + " UTC";
-  $("decksLead").innerHTML = `승률·판수는 <b>${esc(RS.site)} ${esc(RS.mode)} 최근 ${esc(RS.window)}</b>에서 12장이 똑같은 덱의 전적입니다 (${esc(fetched)} 수집). <b>${RS.minGames}판 미만 · 승률 ${RS.minWr}% 이하 · ${D.banned.map((b) => esc(b.reason)).join("·")} 사용 덱은 제외</b>했습니다. ` +
+  $("decksLead").innerHTML = `승률·판수는 <b>${esc(RS.site)} ${esc(RS.mode)} 최근 ${esc(RS.window)}</b>에서 12장이 똑같은 덱의 전적입니다 (${esc(fetched)} 수집). <b>${RS.minGames}판 미만 · 승률 ${RS.minWr}% 이하 · 티어 C 이하 · ${D.banned.map((b) => esc(b.reason)).join("·")} 사용 덱은 제외</b>했습니다. ` +
     `정렬은 <b>내가 기대할 수 있는 승률</b> 순 — 바로 쓸 수 있는 덱은 실제 승률, 미보유 카드가 있는 덱은 내 카드로 바꿨을 때의 <b>예측 승률</b>(트래커 기반 추정)이고, 예측 근거가 없는 덱은 맨 뒤입니다. ` +
     `승률 차이가 2%p 이내면 <b>1%p당 100판 이상 많은 덱을 위로</b> 올립니다 (±는 판수로 본 95% 오차 범위). ` +
     `티어 배지는 노트의 잠정 평가(전체 모드 기준)이고, 흐린 카드 ✕ = 내가 없는 카드.`;
@@ -471,7 +471,7 @@ window.__snapBoot = function () {
   const FILTERS = {
     sort: [["eff", "내 기준 승률"], ["raw", "원본 승률"], ["tier", "티어"]],
     own: [["all", "전체"], ["ok", "바로 사용"], ["pred", "대체 예측"], ["none", "예측 불가"]],
-    tier: [["all", "전체"], ["S", "S"], ["A", "A"], ["B", "B"], ["C", "C"], ["UT", "UT 단독"], ["REF", "참고"]],
+    tier: [["all", "전체"], ["S", "S"], ["A", "A"], ["B", "B"], ["REF", "참고"]],  // C·UT는 목록에서 제외됨
     fam: [["all", "전체"], ...fams.map((f) => [f, f])],
   };
   const rowId = { sort: "fSort", own: "fOwn", tier: "fTier", fam: "fFam" };

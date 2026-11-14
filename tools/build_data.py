@@ -23,6 +23,7 @@ CACHE = ROOT / "cache"
 
 MIN_GAMES = 100   # 랭크 7일 이 판수 미만 빌드는 목록에서 제외 (사용자 요청)
 MIN_WR = 58.0     # 랭크 7일 승률이 이 값 이하인 빌드는 제외 (사용자 요청: "58% 이하는 선택 안 함")
+EXCLUDED_TIERS = {"C": "티어 C 이하", "UT": "티어 C 이하"}  # 사용자 요청: 옛날 카드 위주라 재미없어서 제외
 MIN_PRED = 100    # 미보유 카드 없이 플레이된 같은 계열 판수가 이보다 적으면 예측하지 않음
 MIN_SUB = 30      # 대체 후보 카드가 (미보유 카드를 모두 뺀) 같은 계열 리스트에서 쓰인 최소 판수
 SAME_ARCH = 8     # 원본 빌드와 12장 중 이만큼 겹치면 같은 계열로 봄
@@ -352,12 +353,18 @@ def main():
     db_by_sig = {x["set"]: x for x in db}
 
     out_decks, excluded = [], []
+    note_sets = set()  # 노트에 있는 모든 빌드 (제외된 것 포함) — 발견 덱에 다시 나오지 않게
     for d in decks + refs:
         builds = build_deck(d, res, unowned, banned, db_by_sig, db)
+        note_sets.update(frozenset(b["ids"]) for b in builds)
         inc = [b for b in builds if b["included"]]
         lists = d.pop("lists")
+        tier_reason = EXCLUDED_TIERS.get(d["tier"])
+        if tier_reason:
+            inc = []
+
         def why(b):
-            r = list(b["banned"])
+            r = ([tier_reason] if tier_reason else []) + list(b["banned"])
             if not (b["stats"] and b["stats"]["games"] >= MIN_GAMES):
                 r.append(f"랭크 7일 {MIN_GAMES}판 미만")
             elif b["stats"]["wr"] <= MIN_WR:
@@ -406,8 +413,8 @@ def main():
         st = stat_of(x["stats"])
         if st["games"] < MIN_GAMES or st["wr"] <= MIN_WR or (x["set"] & unowned) or (x["set"] & set(banned)):
             continue
-        if any(x["set"] == s_ for _, s_ in inc_sets):
-            continue  # 이미 목록에 있는 빌드
+        if x["set"] in note_sets:
+            continue  # 노트에 있는 빌드 (목록에 있거나, 티어·매직 등으로 일부러 뺀 것)
         near_d, ov = max(((d, len(x["set"] & s_)) for d, s_ in inc_sets), key=lambda t: t[1], default=(None, 0))
         ids = sorted(x["set"])
         key = sorted(ids, key=lambda c: (-res.by_id[c]["cost"], -res.by_id[c]["power"], res.by_id[c]["name"]))[:3]
