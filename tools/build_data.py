@@ -22,6 +22,7 @@ NOTES = ROOT / "notes"
 CACHE = ROOT / "cache"
 
 MIN_GAMES = 100   # 랭크 7일 이 판수 미만 빌드는 목록에서 제외 (사용자 요청)
+MIN_WR = 58.0     # 랭크 7일 승률이 이 값 이하인 빌드는 제외 (사용자 요청: "58% 이하는 선택 안 함")
 MIN_PRED = 100    # 미보유 카드 없이 플레이된 같은 계열 판수가 이보다 적으면 예측하지 않음
 MIN_SUB = 30      # 대체 후보 카드가 (미보유 카드를 모두 뺀) 같은 계열 리스트에서 쓰인 최소 판수
 SAME_ARCH = 8     # 원본 빌드와 12장 중 이만큼 겹치면 같은 계열로 봄
@@ -146,7 +147,17 @@ def parse_collection(path: Path):
         stat = cols[2] if len(cols) >= 4 else cols[1]
         cards.append({"name": name, "stat": stat})
     upd = re.search(r"마지막 갱신:\s*([0-9-]+)", text)
-    return cards, (upd.group(1) if upd else None)
+    banned = []
+    if "## 제외할 카드" in text:
+        bblock = text.split("## 제외할 카드", 1)[1].split("\n---", 1)[0]
+        for line in bblock.splitlines():
+            if not line.startswith("|") or "---" in line:
+                continue
+            cols = [c.strip() for c in line.strip("|").split("|")]
+            if cols[0] == "카드" or len(cols) < 2:
+                continue
+            banned.append({"name": cols[0], "reason": cols[1]})
+    return cards, (upd.group(1) if upd else None), banned
 
 
 def load_cache():
@@ -217,7 +228,7 @@ def ridge_effects(rows, lam=RIDGE_LAMBDA, max_sweeps=3000, tol=1e-9):
     return beta
 
 
-def predict(ids, st_now, unowned, db):
+def predict(ids, st_now, unowned, db, avoid=frozenset()):
     """미보유 카드를 보유 카드로 바꿨을 때의 랭크 승률 추정 (트래커 기반 참고 추정).
     1) 같은 계열 = 이 빌드와 SAME_ARCH장 이상 겹치는 랭크 7일 리스트
     2) 근거 확인: 미보유 카드 각각, 그리고 미보유 카드를 '모두' 뺀 같은 계열 전적이 MIN_PRED판 이상이어야 함
@@ -244,7 +255,7 @@ def predict(ids, st_now, unowned, db):
     use = Counter()
     for x in lacking_all:
         for c in sorted(x["set"] - core):
-            if c not in unowned:
+            if c not in unowned and c not in avoid:  # 미보유·제외 카드(매직 등)는 대체 후보에서 뺌
                 use[c] += x["stats"]["totalGames"]
     cand = sorted(((c, g) for c, g in use.items() if g >= MIN_SUB), key=lambda cg: (-cg[1], cg[0]))
     if len(cand) < len(miss):
@@ -279,7 +290,7 @@ def predict(ids, st_now, unowned, db):
     }
 
 
-def build_deck(d, res, unowned, db_by_sig, db):
+def build_deck(d, res, unowned, banned, db_by_sig, db):
     builds = []
     for lst in d["lists"]:
         names_opts = lst["slots"]
@@ -298,9 +309,11 @@ def build_deck(d, res, unowned, db_by_sig, db):
                 "stats": stat_of(hit["stats"]) if hit else None,
                 "miss": sorted(set(ids) & unowned),
             }
-            b["included"] = bool(b["stats"] and b["stats"]["games"] >= MIN_GAMES)
+            b["banned"] = sorted({banned[c] for c in ids if c in banned})
+            b["included"] = (bool(b["stats"] and b["stats"]["games"] >= MIN_GAMES)
+                             and b["stats"]["wr"] > MIN_WR and not b["banned"])
             if b["included"] and b["miss"]:
-                b["pred"] = predict(ids, b["stats"], unowned, db)
+                b["pred"] = predict(ids, b["stats"], unowned, db, avoid=set(banned))
             builds.append(b)
     if not builds:
         raise SystemExit(f"[오류] {d['name']} 유효한 12장 조합 없음 (중복 카드)")
@@ -311,7 +324,7 @@ def main():
     meta = Path(sys.argv[1]) if len(sys.argv) > 1 else sorted(NOTES.glob("meta-*.md"))[-1]
     as_of = re.search(r"meta-(\d{4}-\d{2}-\d{2})", meta.name).group(1)
     decks, refs = parse_meta(meta)
-    unowned_list, coll_date = parse_collection(NOTES / "collection.md")
+    unowned_list, coll_date, banned_list = parse_collection(NOTES / "collection.md")
     sv_cards, ranked = load_cache()
     res = Resolver(sv_cards)
     CARD_COST.update({c["id"]: c["cost"] for c in sv_cards})
@@ -319,6 +332,7 @@ def main():
     for u in unowned_list:
         u["id"] = res.id_of(u["name"])
     unowned = {u["id"] for u in unowned_list}
+    banned = {res.id_of(b["name"]): b["reason"] for b in banned_list}
 
     db = []
     for x in ranked["decks"]:
@@ -327,18 +341,31 @@ def main():
 
     out_decks, excluded = [], []
     for d in decks + refs:
-        builds = build_deck(d, res, unowned, db_by_sig, db)
+        builds = build_deck(d, res, unowned, banned, db_by_sig, db)
         inc = [b for b in builds if b["included"]]
         lists = d.pop("lists")
+        def why(b):
+            r = list(b["banned"])
+            if not (b["stats"] and b["stats"]["games"] >= MIN_GAMES):
+                r.append(f"랭크 7일 {MIN_GAMES}판 미만")
+            elif b["stats"]["wr"] <= MIN_WR:
+                r.append(f"승률 {MIN_WR:g}% 이하")
+            return r
         if not inc:
+            reasons = []
+            for b in builds:
+                for r in why(b):
+                    if r not in reasons:
+                        reasons.append(r)
             excluded.append({
                 "no": d["no"], "tier": d["tier"], "name": d["name"],
                 "games": max((b["stats"]["games"] if b["stats"] else 0) for b in builds),
+                "reasons": reasons,
             })
             continue
         d["builds"] = inc
-        d["droppedBuilds"] = [{"label": b["label"], "games": b["stats"]["games"] if b["stats"] else 0}
-                              for b in builds if not b["included"]]
+        d["droppedBuilds"] = [{"label": b["label"], "games": b["stats"]["games"] if b["stats"] else 0,
+                               "reasons": why(b)} for b in builds if not b["included"]]
         out_decks.append(d)
 
     # 서로 다른 원본에서 같은 대체 12장이 나오면 예측값을 하나로 통일 (원본 판수가 가장 많은 쪽 기준)
@@ -383,11 +410,12 @@ def main():
         "asOf": as_of,
         "collectionUpdated": coll_date,
         "rankedSource": {"site": "SnapVault", "window": "7일", "mode": "랭크", "fetchedAt": ranked["fetchedAt"],
-                         "minGames": MIN_GAMES, "minPred": MIN_PRED, "lists": len(db)},
+                         "minGames": MIN_GAMES, "minWr": MIN_WR, "minPred": MIN_PRED, "lists": len(db)},
         "cards": cards,
         "decks": out_decks,
         "excluded": excluded,
         "unowned": [{"id": u["id"], "name": u["name"], "stat": u["stat"]} for u in unowned_list],
+        "banned": [{"id": res.id_of(b["name"]), "name": b["name"], "reason": b["reason"]} for b in banned_list],
     }
     out = ROOT / "data.js"
     out.write_text(
@@ -401,7 +429,7 @@ def main():
     print(f"{meta.name}: 표시 덱 {n_main}개 (+참고 {len(out_decks) - n_main}), 제외 {len(excluded)}개, "
           f"예측 {n_pred}빌드 / 예측 불가 {n_nopred}빌드, 카드 {len(cards)}장 -> {out}")
     for e in excluded:
-        print(f"  제외: #{e['no']} {e['name']} ({e['games']}판)")
+        print(f"  제외: #{e['no']} {e['name']} ({e['games']}판) — {', '.join(e['reasons'])}")
 
 
 if __name__ == "__main__":
