@@ -399,7 +399,27 @@ def main():
                         p[f] = src[f]
                     p["shared"] = True
 
+    # 발견 덱: 노트 목록 밖이지만 내 카드만으로 바로 만들 수 있고 같은 조건(판수·승률·싫어하는 카드)을 통과하는 랭크 7일 리스트
+    inc_sets = [(d, frozenset(b["ids"])) for d in out_decks for b in d["builds"]]
+    discovered = []
+    for x in db:
+        st = stat_of(x["stats"])
+        if st["games"] < MIN_GAMES or st["wr"] <= MIN_WR or (x["set"] & unowned) or (x["set"] & set(banned)):
+            continue
+        if any(x["set"] == s_ for _, s_ in inc_sets):
+            continue  # 이미 목록에 있는 빌드
+        near_d, ov = max(((d, len(x["set"] & s_)) for d, s_ in inc_sets), key=lambda t: t[1], default=(None, 0))
+        ids = sorted(x["set"])
+        key = sorted(ids, key=lambda c: (-res.by_id[c]["cost"], -res.by_id[c]["power"], res.by_id[c]["name"]))[:3]
+        discovered.append({
+            "name": " · ".join(res.by_id[c]["name"] for c in key),
+            "ids": ids, "stats": st,
+            "similar": {"no": near_d["no"], "name": near_d["name"], "overlap": ov} if near_d and ov >= 9 else None,
+        })
+
     used = set()
+    for x in discovered:
+        used |= set(x["ids"])
     for d in out_decks:
         for b in d["builds"]:
             used |= set(b["ids"])
@@ -414,6 +434,8 @@ def main():
     }
     for d in out_decks:  # 코스트 → 이름 순 정렬 (화면·덱 코드 공통)
         key = lambda c: (cards[c]["cost"], cards[c]["name"])
+        for x in discovered:
+            x["ids"].sort(key=key)
         for b in d["builds"]:
             b["ids"].sort(key=key)
             if b.get("pred") and b["pred"]["ok"]:
@@ -427,6 +449,7 @@ def main():
         "cards": cards,
         "decks": out_decks,
         "excluded": excluded,
+        "discovered": discovered,
         "unowned": [{"id": u["id"], "name": u["name"], "stat": u["stat"]} for u in unowned_list],
         "banned": [{"id": res.id_of(b["name"]), "name": b["name"], "reason": b["reason"], "memo": b["memo"]}
                    for b in banned_list],
@@ -442,7 +465,7 @@ def main():
     n_pred = sum(1 for d in out_decks for b in d["builds"] if b.get("pred", {}).get("ok"))
     n_nopred = sum(1 for d in out_decks for b in d["builds"] if b["miss"] and not b.get("pred", {}).get("ok"))
     print(f"{meta.name}: 표시 덱 {n_main}개 (+참고 {len(out_decks) - n_main}), 제외 {len(excluded)}개, "
-          f"예측 {n_pred}빌드 / 예측 불가 {n_nopred}빌드, 카드 {len(cards)}장 -> {out}")
+          f"예측 {n_pred}빌드 / 예측 불가 {n_nopred}빌드, 발견 덱 {len(discovered)}개, 카드 {len(cards)}장 -> {out}")
     for e in excluded:
         print(f"  제외: #{e['no']} {e['name']} ({e['games']}판) — {', '.join(e['reasons'])}")
 
