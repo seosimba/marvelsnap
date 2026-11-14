@@ -37,15 +37,19 @@
 | Moondragon | 2/1 |
 | Rogue Scion of Division | 5/5 |
 | Scarlet Witch Queen of Chaos | 3/3 |
-| Storm (부제 있는 변형판) | 3/1 |
+| Storm Horseman of Famine | 3/1 |
 | Sub-Mariner | 1/2 |
 | Techno-Organic Virus | 2/? (원형 아트) |
 
-> 주의: 기본 **Death**, 기본 **Carnage**, 기본 **Enchantress**, **Zombie Scarlet Witch**는 위 카드들과 다른 카드이므로 보유한 것으로 간주.
+> 주의: 기본 **Death**, 기본 **Carnage**, 기본 **Enchantress**, 기본 **Storm**, **Zombie Scarlet Witch**는 위 카드들과 다른 카드이므로 보유한 것으로 간주.
+> 이름 대조 (2026-11-14, SnapVault 카드 DB): 캡처의 "Storm (부제 있는 변형판) 3/1" = **Storm Horseman of Famine**, "Kang the Conqueror" = 게임 데이터상 **Kang** (3/5).
 
 ---
 
 ## 메타 덱 30선 기준 사용 가능 여부 (meta-2026-11-14.md v2 번호)
+
+> v3부터 페이지가 이 판단을 자동으로 계산함 (랭크 7일 100판 미만 덱 제외, 미보유 덱은 대체 예측). 아래 표는 v2 시점 기록.
+> v3 결과(2026-11-14): 바로 사용 11덱 · 내 카드로 대체 예측 2덱(#6, #11) · 예측 불가 15덱(미보유 카드 없이 플레이된 데이터 부족). #10·13·16·17·25·27·30은 랭크 7일 100판 미만으로 제외.
 
 ### ✅ 지금 바로 사용 가능 (미보유 0장) — 13덱 + 참고 2덱
 | # | 덱 | 티어 |
