@@ -4,7 +4,8 @@
 
 ## 구조
 - `notes/meta-YYYY-MM-DD.md` — 주간 메타 리서치 (덱 리스트·출처·티어 근거·페이지 표시 규칙)
-- `notes/collection.md` — 미보유 카드 목록
+- `notes/unowned.md` — **없는 카드** (덱은 목록에 남기고 빨간 ✕ + 내 카드로 대체 예측)
+- `notes/disliked.md` — **싫어하는 카드** (들어간 덱은 순위에서 빼고 제외 이유 표시, 대체 카드로도 추천 안 함)
 - `tools/fetch_sv.py` — SnapVault 공개 API에서 카드 목록 + 랭크 7일 덱 통계를 `cache/`에 저장 (커밋 안 함)
 - `tools/build_data.py` — 노트 + 컬렉션 + 캐시 → `data.js`
   - 덱마다 12장 검증, 플렉스 슬롯은 빌드별로 펼침
@@ -15,6 +16,6 @@
 ## 갱신
 ```bash
 python3 tools/fetch_sv.py     # 랭크 7일 데이터 갱신 (약 30초, 서버 부담 줄이려 페이지마다 0.5초 쉼)
-python3 tools/build_data.py   # 최신 meta-*.md + collection.md + cache/ → data.js
+python3 tools/build_data.py   # 최신 meta-*.md + unowned.md + disliked.md + cache/ → data.js
 git add -A && git commit -m "..." && git push
 ```

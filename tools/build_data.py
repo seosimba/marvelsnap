@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""notes/meta-*.md + notes/collection.md + cache/(SnapVault) -> data.js (페이지용 데이터).
+"""notes/meta-*.md + notes/unowned.md(없는 카드) + notes/disliked.md(싫어하는 카드) + cache/(SnapVault) -> data.js.
 
 사용:
   python3 tools/fetch_sv.py          # SnapVault 랭크 7일 데이터 갱신 (cache/)
@@ -132,32 +132,43 @@ def parse_meta(path: Path):
     return decks, refs
 
 
-def parse_collection(path: Path):
+def parse_table(block: str):
+    """마크다운 표 → 행 목록(열 리스트). 머리줄·구분줄 제외."""
+    rows = []
+    for line in block.splitlines():
+        if not line.startswith("|") or set(line.replace("|", "").strip()) <= set("-: "):
+            continue
+        rows.append([c.strip() for c in line.strip("|").split("|")])
+    return rows
+
+
+def parse_unowned(path: Path):
+    """notes/unowned.md — 없는 카드. 4열 표(시즌|카드|코스트/파워|기간) 또는 2열 표(카드|코스트/파워)."""
     text = path.read_text(encoding="utf-8")
     block = text.split("## 미보유 Series 5", 1)[1].split("\n---", 1)[0]
     cards = []
-    for line in block.splitlines():
-        if not line.startswith("|") or "---" in line:
-            continue
-        cols = [c.strip() for c in line.strip("|").split("|")]
+    for cols in parse_table(block):
         if cols[0] in ("시즌", "카드"):
             continue
-        # 4열 표(시즌|카드|코스트/파워|기간) 또는 2열 표(카드|코스트/파워)
         name = cols[1] if len(cols) >= 4 else cols[0]
         stat = cols[2] if len(cols) >= 4 else cols[1]
         cards.append({"name": name, "stat": stat})
     upd = re.search(r"마지막 갱신:\s*([0-9-]+)", text)
-    banned = []
-    if "## 제외할 카드" in text:
-        bblock = text.split("## 제외할 카드", 1)[1].split("\n---", 1)[0]
-        for line in bblock.splitlines():
-            if not line.startswith("|") or "---" in line:
-                continue
-            cols = [c.strip() for c in line.strip("|").split("|")]
-            if cols[0] == "카드" or len(cols) < 2:
-                continue
-            banned.append({"name": cols[0], "reason": cols[1]})
-    return cards, (upd.group(1) if upd else None), banned
+    return cards, (upd.group(1) if upd else None)
+
+
+def parse_disliked(path: Path):
+    """notes/disliked.md — 싫어하는 카드. 표(카드|표시 이유|메모). 파일이 없으면 빈 목록."""
+    if not path.exists():
+        return [], None
+    text = path.read_text(encoding="utf-8")
+    out = []
+    for cols in parse_table(text):
+        if cols[0] == "카드" or len(cols) < 2:
+            continue
+        out.append({"name": cols[0], "reason": cols[1] or cols[0], "memo": cols[2] if len(cols) > 2 else ""})
+    upd = re.search(r"마지막 갱신:\s*([0-9-]+)", text)
+    return out, (upd.group(1) if upd else None)
 
 
 def load_cache():
@@ -324,7 +335,8 @@ def main():
     meta = Path(sys.argv[1]) if len(sys.argv) > 1 else sorted(NOTES.glob("meta-*.md"))[-1]
     as_of = re.search(r"meta-(\d{4}-\d{2}-\d{2})", meta.name).group(1)
     decks, refs = parse_meta(meta)
-    unowned_list, coll_date, banned_list = parse_collection(NOTES / "collection.md")
+    unowned_list, coll_date = parse_unowned(NOTES / "unowned.md")
+    banned_list, disliked_date = parse_disliked(NOTES / "disliked.md")
     sv_cards, ranked = load_cache()
     res = Resolver(sv_cards)
     CARD_COST.update({c["id"]: c["cost"] for c in sv_cards})
@@ -394,6 +406,7 @@ def main():
             if b.get("pred") and b["pred"]["ok"]:
                 used |= set(b["pred"]["ids"])
     used |= unowned
+    used |= set(banned)
     cards = {
         cid: {"name": res.by_id[cid]["name"], "cost": res.by_id[cid]["cost"],
               "power": res.by_id[cid]["power"], "code": res.by_id[cid]["deckCode"]}
@@ -415,7 +428,9 @@ def main():
         "decks": out_decks,
         "excluded": excluded,
         "unowned": [{"id": u["id"], "name": u["name"], "stat": u["stat"]} for u in unowned_list],
-        "banned": [{"id": res.id_of(b["name"]), "name": b["name"], "reason": b["reason"]} for b in banned_list],
+        "banned": [{"id": res.id_of(b["name"]), "name": b["name"], "reason": b["reason"], "memo": b["memo"]}
+                   for b in banned_list],
+        "dislikedUpdated": disliked_date,
     }
     out = ROOT / "data.js"
     out.write_text(
