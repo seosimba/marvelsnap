@@ -181,6 +181,53 @@ def parse_disliked(path: Path):
     return out, (upd.group(1) if upd else None)
 
 
+def parse_substitutes(path: Path):
+    """notes/substitutes.md — 데이터로 예측 못 하는 덱에 Claude가 고른 대체 카드.
+    {("no", 2) 또는 ("ref", 이름): [{"out", "in", "why"}]}"""
+    if not path.exists():
+        return {}
+    out, key = {}, None
+    for line in path.read_text(encoding="utf-8").splitlines():
+        m = re.match(r"## #(\d+)\b", line)
+        if m:
+            key = ("no", int(m.group(1)))
+            out[key] = []
+            continue
+        m = re.match(r"## 참고:\s*(.+)$", line)
+        if m:
+            key = ("ref", m.group(1).strip())
+            out[key] = []
+            continue
+        if line.startswith("#"):
+            key = None
+            continue
+        m = re.match(r"- (.+?) → (.+?) — (.+)$", line.strip())
+        if key and m:
+            out[key].append({"out": m.group(1).strip(), "in": m.group(2).strip(), "why": m.group(3).strip()})
+    return out
+
+
+def apply_guess(b, swaps, res, unowned, banned, db_by_sig):
+    """예측 불가 빌드에 추측 대체를 적용. 미보유 카드마다 교체가 있어야 하고, 넣는 카드는 보유·비선호 아님·중복 아님."""
+    by_out = {}
+    for sw in swaps:
+        by_out[res.id_of(sw["out"])] = sw
+    if not all(m in by_out for m in b["miss"]):
+        return None
+    ids = set(b["ids"])
+    out = []
+    for m in b["miss"]:
+        sw = by_out[m]
+        new = res.id_of(sw["in"])
+        if new in unowned or new in banned or new in ids:
+            raise SystemExit(f"[오류] substitutes.md: {sw['in']} 은(는) 미보유·싫어하는 카드이거나 이미 덱에 있음")
+        ids.discard(m)
+        ids.add(new)
+        out.append({"out": m, "in": new, "why": sw["why"]})
+    hit = db_by_sig.get(frozenset(ids))
+    return {"swaps": out, "ids": sorted(ids), "exact": stat_of(hit["stats"]) if hit else None}
+
+
 def load_cache():
     try:
         cards = json.loads((CACHE / "sv_cards.json").read_text(encoding="utf-8"))
@@ -366,6 +413,7 @@ def main():
     decks, refs = parse_meta(meta)
     unowned_list, coll_date = parse_unowned(NOTES / "unowned.md")
     banned_list, disliked_date = parse_disliked(NOTES / "disliked.md")
+    guesses = parse_substitutes(NOTES / "substitutes.md")
     sv_cards, ranked, ut_cards = load_cache()
     res = Resolver(sv_cards)
     REL.update(release_dates(ut_cards))
@@ -437,6 +485,18 @@ def main():
                         p[f] = src[f]
                     p["shared"] = True
 
+    # 데이터로 예측 못 한 빌드에 Claude 추측 대체 적용
+    for d in out_decks:
+        swaps = guesses.get(("no", d["no"])) if d["no"] else guesses.get(("ref", d["name"]))
+        for b in d["builds"]:
+            p = b.get("pred")
+            if swaps and b["miss"] and p and not p["ok"]:
+                g = apply_guess(b, swaps, res, unowned, set(banned), db_by_sig)
+                if g:
+                    b["guess"] = g
+                else:
+                    print(f"  [주의] #{d['no']} {d['name']} 추측 대체가 미보유 카드를 다 덮지 못함")
+
     # 발견 덱: 노트 목록 밖이지만 내 카드만으로 바로 만들 수 있고 같은 조건(판수·승률·싫어하는 카드)을 통과하는 랭크 7일 리스트
     inc_sets = [(d, frozenset(b["ids"])) for d in out_decks for b in d["builds"]]
     discovered = []
@@ -464,6 +524,8 @@ def main():
             used |= set(b["ids"])
             if b.get("pred") and b["pred"]["ok"]:
                 used |= set(b["pred"]["ids"])
+            if b.get("guess"):
+                used |= set(b["guess"]["ids"])
     used |= unowned
     used |= set(banned)
     cards = {
@@ -480,6 +542,8 @@ def main():
             b["ids"].sort(key=key)
             if b.get("pred") and b["pred"]["ok"]:
                 b["pred"]["ids"].sort(key=key)
+            if b.get("guess"):
+                b["guess"]["ids"].sort(key=key)
 
     data = {
         "asOf": as_of,
@@ -505,8 +569,9 @@ def main():
     n_main = sum(1 for d in out_decks if d["tier"] != "REF")
     n_pred = sum(1 for d in out_decks for b in d["builds"] if b.get("pred", {}).get("ok"))
     n_nopred = sum(1 for d in out_decks for b in d["builds"] if b["miss"] and not b.get("pred", {}).get("ok"))
+    n_guess = sum(1 for d in out_decks for b in d["builds"] if b.get("guess"))
     print(f"{meta.name}: 표시 덱 {n_main}개 (+참고 {len(out_decks) - n_main}), 제외 {len(excluded)}개, "
-          f"예측 {n_pred}빌드 / 예측 불가 {n_nopred}빌드, 발견 덱 {len(discovered)}개, 카드 {len(cards)}장 -> {out}")
+          f"예측 {n_pred}빌드 / 예측 불가 {n_nopred}빌드(추측 대체 {n_guess}), 발견 덱 {len(discovered)}개, 카드 {len(cards)}장 -> {out}")
     for e in excluded:
         print(f"  제외: #{e['no']} {e['name']} ({e['games']}판) — {', '.join(e['reasons'])}")
 
