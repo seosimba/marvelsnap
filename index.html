@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache">
 <title>Marvel Snap 덱 노트</title>
 <meta name="description" content="마블 스냅 메타 덱 30선과 내 컬렉션 기준 사용 가능 여부 — 개인 덱 빌딩 노트">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
@@ -377,9 +378,9 @@ footer { padding: 32px 0 48px; color: var(--text-3); font-size: 13px; }
 </footer>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="data.js"></script>
 <script>
-(function () {
+/* 페이지 본문 — data.js 로딩이 끝나면 아래 로더가 호출 */
+window.__snapBoot = function () {
   const D = window.SNAP_DATA;
   const C = D.cards;
   const $ = (id) => document.getElementById(id);
@@ -644,6 +645,35 @@ footer { padding: 32px 0 48px; color: var(--text-3); font-size: 13px; }
 
   renderFilters();
   renderDecks();
+};
+</script>
+<script>
+/* 주소를 직접 입력해 들어와도 최신 페이지가 보이도록:
+   GitHub Pages는 페이지를 10분간 캐시함 → 서버의 최신 수정 시각과 지금 보이는 페이지를 비교해
+   낡았으면 캐시에 없는 새 주소(?v=시각)로 한 번 다시 연다. 새 페이지는 시각이 같아져 반복되지 않음 */
+(function () {
+  try {
+    var u = new URL(location.href);
+    if (u.searchParams.has("v")) { u.searchParams.delete("v"); history.replaceState(null, "", u.pathname + u.search + u.hash); }
+  } catch (e) {}
+  var mine = Date.parse(document.lastModified);
+  if (!window.fetch || !mine) return;
+  fetch(location.pathname, { method: "HEAD", cache: "no-store" }).then(function (r) {
+    var srv = Date.parse(r.headers.get("Last-Modified") || "");
+    if (srv && srv - mine > 1000) location.replace(location.pathname + "?v=" + srv + location.hash);
+  }).catch(function () {});
+})();
+
+/* GitHub Pages는 data.js를 10분간 캐시하고, 브라우저는 새로고침 때 하위 파일 캐시를 그대로 씀
+   → 매번 주소에 시간값을 붙여 새로 받는다 (새로고침하면 항상 최신 데이터) */
+(function () {
+  var s = document.createElement("script");
+  s.src = "data.js?t=" + Date.now();
+  s.onload = function () { window.__snapBoot(); };
+  s.onerror = function () {
+    document.getElementById("deckList").innerHTML = '<div class="empty">데이터를 불러오지 못했습니다. 새로고침해 주세요.</div>';
+  };
+  document.head.appendChild(s);
 })();
 </script>
 </body>
