@@ -228,6 +228,91 @@ def apply_guess(b, swaps, res, unowned, banned, db_by_sig):
     return {"swaps": out, "ids": sorted(ids), "exact": stat_of(hit["stats"]) if hit else None}
 
 
+def parse_event(path: Path):
+    """notes/event-*.md — 이벤트 모드(LTGM) 덱 노트. 형식은 노트 머리말 참고."""
+    text = path.read_text(encoding="utf-8")
+    title = text.splitlines()[0].lstrip("# ").strip()
+    info, decks, skipped = {}, [], []
+    sec, cur = None, None
+    for line in text.splitlines():
+        s = line.strip()
+        if s.startswith("## "):
+            sec, cur = s[3:].strip(), None
+            continue
+        if sec == "요약":
+            m = re.match(r"- ([^:]+):\s*(.+)$", s)
+            if m:
+                info[m.group(1).strip()] = m.group(2).strip()
+        elif sec == "덱":
+            m = re.match(r"### (\d+)\. (.+)$", s)
+            if m:
+                cur = {"no": int(m.group(1)), "name": m.group(2).strip(), "orig": None, "cards": None,
+                       "swaps": [], "notes": []}
+                decks.append(cur)
+                continue
+            if not cur or not s.startswith("- "):
+                continue
+            if s.startswith("- 원본:"):
+                m = re.match(r"- 원본:\s*([\d.]+)%\s*·\s*([\d,]+)판\s*·\s*([\d,]+)명(?:\s*·\s*(.+))?$", s)
+                if not m:
+                    raise SystemExit(f"[오류] {path.name} #{cur['no']} 원본 줄 형식: {s}")
+                cur["orig"] = {"wr": float(m.group(1)), "games": int(m.group(2).replace(",", "")),
+                               "players": int(m.group(3).replace(",", "")), "note": (m.group(4) or "").strip()}
+            elif s.startswith("- 카드:"):
+                cur["cards"] = [c.strip() for c in s[len("- 카드:"):].split(",") if c.strip()]
+            elif s.startswith("- 대체("):
+                m = re.match(r"- 대체\((데이터|추측)\):\s*(.+?) → (.+?) — (.+)$", s)
+                if not m:
+                    raise SystemExit(f"[오류] {path.name} #{cur['no']} 대체 줄 형식: {s}")
+                cur["swaps"].append({"kind": "data" if m.group(1) == "데이터" else "guess",
+                                     "out": m.group(2).strip(), "in": m.group(3).strip(), "why": m.group(4).strip()})
+            elif s.startswith("- 메모:"):
+                cur["notes"].append(strip_md(s[len("- 메모:"):]))
+        elif sec == "고르지 않은 상위 덱" and s.startswith("- "):
+            skipped.append(strip_md(s[2:]))
+    dates = re.findall(r"\d{4}-\d{2}-\d{2}", info.get("기간", ""))
+    return {"file": path.name, "asOf": re.search(r"(\d{4}-\d{2}-\d{2})", path.name).group(1), "title": title,
+            "info": info, "start": dates[0] if dates else None, "end": dates[1] if len(dates) > 1 else None,
+            "decks": decks, "skipped": skipped}
+
+
+def build_events(res, unowned, banned):
+    """이벤트 노트 → 페이지용 데이터. 미보유 카드는 모두 대체돼야 하고, 넣는 카드는 보유·비선호 아님·이벤트 금지 아님."""
+    events = []
+    for path in sorted(NOTES.glob("event-*.md"), reverse=True):
+        ev = parse_event(path)
+        ev_banned = set()
+        for n in ev["info"].get("금지 카드", "").split(","):
+            if n.strip() and norm(n) in res.by_norm:
+                ev_banned.add(res.id_of(n))
+        for d in ev["decks"]:
+            where = f"{path.name} #{d['no']} {d['name']}"
+            if not d["orig"] or not d["cards"]:
+                raise SystemExit(f"[오류] {where}: 원본·카드 줄이 없음")
+            ids = [res.id_of(n) for n in d["cards"]]
+            if len(set(ids)) != 12:
+                raise SystemExit(f"[오류] {where}: 카드 {len(set(ids))}장 (12장이어야 함)")
+            alt, swaps = set(ids), []
+            for sw in d["swaps"]:
+                o, n = res.id_of(sw["out"]), res.id_of(sw["in"])
+                if o not in alt:
+                    raise SystemExit(f"[오류] {where}: 빠지는 카드 {sw['out']} 이(가) 덱에 없음")
+                if n in unowned or n in banned or n in ev_banned or n in alt:
+                    raise SystemExit(f"[오류] {where}: {sw['in']} 은(는) 미보유·싫어하는 카드·이벤트 금지 카드이거나 이미 덱에 있음")
+                alt.discard(o)
+                alt.add(n)
+                swaps.append({"kind": sw["kind"], "out": o, "in": n, "why": sw["why"]})
+            left = sorted(c for c in alt if c in unowned or c in banned or c in ev_banned)
+            if left:
+                raise SystemExit(f"[오류] {where}: 대체 후에도 못 쓰는 카드가 남음 — {', '.join(left)}")
+            d.update({"ids": ids, "miss": sorted(c for c in ids if c in unowned),
+                      "alt": {"ids": sorted(alt), "swaps": swaps} if swaps else None})
+            for k in ("cards", "swaps"):
+                d.pop(k)
+        events.append(ev)
+    return events
+
+
 def load_cache():
     try:
         cards = json.loads((CACHE / "sv_cards.json").read_text(encoding="utf-8"))
@@ -516,7 +601,14 @@ def main():
             "similar": {"no": near_d["no"], "name": near_d["name"], "overlap": ov} if near_d and ov >= 9 else None,
         })
 
+    events = build_events(res, unowned, set(banned))
+
     used = set()
+    for ev in events:
+        for d in ev["decks"]:
+            used |= set(d["ids"])
+            if d["alt"]:
+                used |= set(d["alt"]["ids"])
     for x in discovered:
         used |= set(x["ids"])
     for d in out_decks:
@@ -534,8 +626,13 @@ def main():
               "rel": REL[cid].isoformat() if REL.get(cid) else None}
         for cid in sorted(used)
     }
+    key = lambda c: (cards[c]["cost"], cards[c]["name"])
+    for ev in events:
+        for d in ev["decks"]:
+            d["ids"].sort(key=key)
+            if d["alt"]:
+                d["alt"]["ids"].sort(key=key)
     for d in out_decks:  # 코스트 → 이름 순 정렬 (화면·덱 코드 공통)
-        key = lambda c: (cards[c]["cost"], cards[c]["name"])
         for x in discovered:
             x["ids"].sort(key=key)
         for b in d["builds"]:
@@ -559,6 +656,7 @@ def main():
         "banned": [{"id": res.id_of(b["name"]), "name": b["name"], "reason": b["reason"], "memo": b["memo"]}
                    for b in banned_list],
         "dislikedUpdated": disliked_date,
+        "events": events,
     }
     out = ROOT / "data.js"
     out.write_text(
@@ -574,6 +672,8 @@ def main():
           f"예측 {n_pred}빌드 / 예측 불가 {n_nopred}빌드(추측 대체 {n_guess}), 발견 덱 {len(discovered)}개, 카드 {len(cards)}장 -> {out}")
     for e in excluded:
         print(f"  제외: #{e['no']} {e['name']} ({e['games']}판) — {', '.join(e['reasons'])}")
+    for ev in events:
+        print(f"  이벤트: {ev['file']} ({ev['start']} ~ {ev['end']}) 덱 {len(ev['decks'])}개")
 
 
 if __name__ == "__main__":

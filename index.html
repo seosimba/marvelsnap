@@ -209,6 +209,7 @@ footer { padding: 32px 0 48px; color: var(--text-3); font-size: 13px; }
 <nav class="top" aria-label="섹션">
   <div class="wrap">
     <a class="brand" href="#top">덱 노트</a>
+    <a href="#events" id="navEvents" hidden>이벤트</a>
     <a href="#decks">덱 목록</a>
     <a href="#discovered">발견 덱</a>
     <a href="#collection">내 카드</a>
@@ -225,6 +226,11 @@ footer { padding: 32px 0 48px; color: var(--text-3); font-size: 13px; }
     <p class="sub" id="heroSub">메타 기준일 — · Knights of Avalon 시즌 · 11/12 OTA 직후</p>
     <div class="stats" id="stats"></div>
   </header>
+
+  <section id="events" aria-labelledby="ev-h" hidden>
+    <h2 id="ev-h">이벤트 모드</h2>
+    <div id="eventList"></div>
+  </section>
 
   <section id="trend" aria-labelledby="trend-h">
     <h2 id="trend-h">이번 주 메타 흐름</h2>
@@ -684,6 +690,64 @@ window.__snapBoot = function () {
   $("discList").innerHTML = DISC.length
     ? rankSort(DISC, (d) => d._eff.wr, (d) => d._effGames).map((d, i) => deckHTML(d, i + 1)).join("")
     : `<div class="empty">조건에 맞는 발견 덱이 없습니다.</div>`;
+
+  /* 이벤트 모드 (notes/event-*.md) — 원본은 이벤트 트래커 전적, 내 덱은 미보유 카드를 바꾼 버전 (승률 없음) */
+  const EVENTS = D.events || [];
+  const pad = (n) => String(n).padStart(2, "0");
+  const now = new Date();
+  const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  function evDeckHTML(d, key) {
+    const o = d.orig, a = d.alt;
+    buildByKey[key] = { ids: d.ids, _alt: a };
+    const added = a ? new Set(a.swaps.map((s) => s.in)) : null;
+    const dim = d.miss.length > 0;
+    const wr = `<div class="wr-line"><span class="wr-big${dim ? " dim" : ""}">${o.wr.toFixed(1)}%</span><span class="wr-meta">${dim ? "원본 · " : ""}±${ci(o).toFixed(1)}%p · ${num(o.games)}판 · ${num(o.players)}명${o.note ? " · " + esc(o.note) : ""}</span></div>`;
+    const grids = a
+      ? `<div class="grid12" data-view="orig" hidden>${d.ids.map((id) => fig(id)).join("")}</div><div class="grid12" data-view="alt">${a.ids.map((id) => fig(id, added.has(id) ? "added" : "")).join("")}</div>`
+      : `<div class="grid12" data-view="orig">${d.ids.map((id) => fig(id)).join("")}</div>`;
+    const box = a ? `<div class="pred guess">
+        <div class="wr-line"><span class="pred-lbl">내 카드로 바꾼 덱</span><span class="wr-meta">위 승률은 원본 덱 기준 — 바꾼 덱은 데이터가 없어 승률을 매기지 않음</span></div>
+        <ul class="why">${a.swaps.map((s) => `<li><span class="swap"><s>${esc(nm(s.out))}</s> → <b>${esc(nm(s.in))}</b></span> <span class="tag">${s.kind === "data" ? "데이터" : "추측"}</span> <span class="wr-meta">${esc(s.why)}</span></li>`).join("")}</ul>
+      </div>` : "";
+    const btns = a
+      ? [`<button class="btn primary" type="button" data-act="code" data-ids="${esc(a.ids.join(","))}" data-what="내 덱 코드">내 덱 코드 복사</button>`,
+         `<button class="btn" type="button" data-act="view" data-b="${key}">원본 덱 보기</button>`,
+         `<button class="btn ghost" type="button" data-act="code" data-ids="${esc(d.ids.join(","))}" data-what="원본 덱 코드">원본 덱 코드</button>`]
+      : [`<button class="btn primary" type="button" data-act="code" data-ids="${esc(d.ids.join(","))}" data-what="덱 코드">덱 코드 복사</button>`];
+    btns.push(`<button class="btn ghost" type="button" data-act="list" data-b="${key}">카드 목록</button>`);
+    return `<article class="deck">
+      <div class="deck-head">
+        <div class="rank" aria-label="순위">${d.no}</div>
+        <div class="deck-title"><h3>${esc(d.name)}</h3></div>
+        <span class="own ${a ? "pred" : "ok"}">${a ? `${a.swaps.length}장 대체` : "✓ 바로 사용"}</span>
+      </div>
+      <div class="build" data-b="${key}">${wr}${grids}${box}<div class="btns">${btns.join("")}</div></div>
+      ${d.notes.length ? `<details class="ev"><summary>플레이 메모</summary><div><ul>${d.notes.map((n) => `<li>${esc(n)}</li>`).join("")}</ul></div></details>` : ""}
+    </article>`;
+  }
+  function eventHTML(ev, ei) {
+    const I = ev.info, live = !ev.end || ev.end >= today;
+    const link = I["출처 링크"];
+    const lead = [
+      I["기간"] ? `<b>기간</b> ${esc(I["기간"])}` : "",
+      I["규칙"] ? `<b>규칙</b> ${esc(I["규칙"])}` : "",
+      I["금지 카드"] ? `<b>금지 카드</b> ${esc(I["금지 카드"])}` : "",
+      I["데이터"] ? `<b>데이터</b> ${link ? `<a href="${esc(link)}" target="_blank" rel="noopener">${esc(I["데이터"])}</a>` : esc(I["데이터"])}` : "",
+    ].filter(Boolean).join("<br>");
+    const body = `<p class="lead">${lead}<br><span class="muted">이벤트 덱 승률 순위에서 내 카드로 만들 수 있는 덱을 승률 순으로 골랐습니다. 승률은 미보유 카드가 들어간 <b>원본 덱</b>의 전적이고, 카드 그림은 <b>내 카드로 바꾼 덱</b>입니다 (초록 + = 바꿔 넣은 카드). 근거: <code>notes/${esc(ev.file)}</code></span></p>
+      <div class="decks">${ev.decks.map((d) => evDeckHTML(d, `e${ei}d${d.no}`)).join("")}</div>
+      ${ev.skipped.length ? `<p class="excluded"><b>고르지 않은 상위 덱</b>: ${ev.skipped.map(esc).join(" · ")}</p>` : ""}`;
+    const head = `${esc(I["모드"] || ev.title)} <span class="tag ${live ? "up" : ""}">${live ? "진행 중" : "종료"}${ev.end ? ` · ~${esc(ev.end.slice(5).replace("-", "/"))}` : ""}</span>`;
+    return live
+      ? `<h3 class="sub">${head}</h3>${body}`
+      : `<details><summary>${head}</summary><div>${body}</div></details>`;
+  }
+  if (EVENTS.length) {
+    $("events").hidden = false;
+    $("navEvents").hidden = false;
+    $("eventList").innerHTML = EVENTS.map(eventHTML).join("");
+    $("eventList").addEventListener("click", onDeckClick);
+  }
 
   /* 카드 관리 비교표 */
   const bannedOut = D.banned.reduce((n, b) => n + D.excluded.filter((x) => x.reasons.includes(b.reason)).length, 0);
