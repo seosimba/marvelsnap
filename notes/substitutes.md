@@ -1,6 +1,6 @@
 # 대체 카드 추천 (Claude 추측)
 
-> 마지막 갱신: 2026-11-14
+> 마지막 갱신: 2026-11-18 (#6 추가 — 11/18 데이터에서 데이터 예측이 끊김)
 > 데이터로 예측할 수 없는 덱(미보유 카드를 모두 뺀 같은 계열 랭크 전적이 100판 미만)에, Claude가 **카드 능력과 덱 역할을 보고 고른** 대체 카드. **승률 근거가 없는 추측**이라 페이지에는 '추측'으로 표시하고 예측 승률을 매기지 않는다.
 > 고르는 원칙: ① 빠지는 카드와 같은 역할·코스트대 ② 내가 가진 카드(`unowned.md`에 없음), 싫어하는 카드(`disliked.md`) 제외 ③ 같은 계열 데이터에서 그 카드 없이 쓰인 카드가 있으면 우선
 > 형식: `## #번호 덱 이름`(참고 덱은 `## 참고: 덱 이름`) 아래 `- 빠지는 카드 → 넣을 카드 — 이유`. 덱에 빌드가 여럿이면 그 카드가 있는 빌드에 모두 적용.
@@ -20,6 +20,10 @@
 
 ## #5 Stardust / Gambit HoD — Sasquatch형
 - Scarlet Witch Queen of Chaos → Merlin — 매 턴 시작에 생성 카드(Incantation)를 손에 넣어 SW QoC처럼 Gambit HoD 목표(생성 카드 6코스트)·King Eitri·Sasquatch 할인을 채움. 같은 계열에서 SW QoC 대신 가장 많이 쓰임
+
+## #6 Zombie Horde — Zombie Blade형
+- Scarlet Witch Queen of Chaos → Absorbing Man — #11 Luke Cage형(Zombie Blade 자리만 Luke Cage로 다른 같은 계열)에서 데이터 예측이 고른 대체 카드. 직전에 낸 카드의 On Reveal을 복사해 Zombie Mister Fantastic·Zombie Giant-Man의 Horde +2를 한 번 더 일으킴
+- Zombie Blade → Luke Cage — 같은 2코스트. 이 카드만 바꾸면 #11 Luke Cage형과 같은 12장이 됨 (#11은 11/18 랭크 7일 171판 63.7%). Luke Cage는 앞줄 아군의 파워가 깎이지 않게 막아 Horde로 키운 판을 지킴
 
 ## #9 Stardust / Gambit HoD — Kluh형
 - Scarlet Witch Queen of Chaos → Merlin — #5와 같은 이유 (생성 카드 공급)
