@@ -8,12 +8,12 @@
 - `notes/disliked.md` — **싫어하는 카드** (들어간 덱은 순위에서 빼고 제외 이유 표시, 대체 카드로도 추천 안 함)
 - `notes/substitutes.md` — **Claude 추측 대체 카드** (데이터로 예측 못 하는 덱용, 승률 없음·이유 포함)
 - `notes/event-<모드>-YYYY-MM-DD.md` — **기간 한정 모드**. 파일명의 모드별로 탭이 생기며 지난 회차도 볼 수 있다. [폭주 매치 덱 형식](notes/event-high-voltage-2026-11-15.md) · [드래프트 스타터 팩 형식](notes/event-draft-2026-11-21.md)
-- `tools/fetch_sv.py` — SnapVault 공개 API에서 카드 목록 + 랭크 7일 덱 통계를 `cache/`에 저장 (커밋 안 함)
+- `tools/fetch_sv.py` — SnapVault 랭크 7일 통계와 카드 목록, Untapped 카드 출시일·한국어 표기를 `cache/`에 저장
 - `tools/build_data.py` — 노트 + 컬렉션 + 캐시 → `data.js`
   - 덱마다 12장 검증, 플렉스 슬롯은 빌드별로 펼침
   - 빌드마다 랭크 7일 승률·판수 (12장 완전 일치), 100판 미만 제외
   - 미보유 카드가 있는 빌드는 대체 카드와 예측 승률 계산 (방법은 노트 `### 페이지 표시 규칙`)
-- `index.html` + `data.js` — 페이지 (카드 이미지: Untapped.gg, 덱 코드 = 카드 코드를 쉼표로 이어 base64)
+- `index.html` + `data.js` — 페이지 (카드 이미지·한국어 표기: Untapped.gg, 덱 코드 = 카드 코드를 쉼표로 이어 base64)
 
 ## 갱신
 ```bash

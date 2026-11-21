@@ -10,6 +10,7 @@
 - 빌드마다 SnapVault 랭크 7일 통계를 12장 완전 일치로 붙인다. MIN_GAMES 미만 빌드는 제외.
 - 미보유 카드가 있는 빌드는 '보유 카드만 쓴 실제 유사 리스트'의 전적을 합산해 예측한다.
 """
+import html
 import itertools
 import json
 from datetime import date, datetime, timedelta, timezone
@@ -302,12 +303,23 @@ def parse_event(path: Path):
 def build_events(res, unowned, banned):
     """이벤트 노트 → 페이지용 데이터. 미보유 카드는 모두 대체돼야 하고, 넣는 카드는 보유·비선호 아님·이벤트 금지 아님."""
     events = []
+    name_ids = {c["name"]: cid for cid, c in res.by_id.items()}
+    name_options = "|".join(re.escape(name) for name in sorted(name_ids, key=len, reverse=True))
+    card_pattern = re.compile(rf"(?<![a-zA-Z0-9])({name_options})(?![a-zA-Z0-9])")
     for path in sorted(NOTES.glob("event-*.md"), key=lambda p: p.stem[-10:], reverse=True):
         ev = parse_event(path)
-        ev_banned = set()
-        for n in ev["info"].get("금지 카드", "").split(","):
-            if n.strip() and norm(n) in res.by_norm:
-                ev_banned.add(res.id_of(n))
+        for pack in ev.get("packs", []):
+            pack["ids"] = [res.id_of(name) for name in [pack["name"], *pack["cards"].split(" · ")]]
+            if len(set(pack["ids"])) != 3:
+                raise SystemExit(f"[오류] {path.name} {pack['name']}: 스타터 카드 3장이 필요합니다.")
+        if "guide" in ev:
+            ev["guide"] = [{"text": tip, "ids": list(dict.fromkeys(name_ids[name] for name in card_pattern.findall(tip)))}
+                           for tip in ev["guide"]]
+        ev_banned = [res.id_of(n) for n in ev["info"].get("금지 카드", "").split(",")
+                     if norm(n) in res.by_norm]
+        if ev_banned:
+            ev["bannedIds"] = ev_banned
+        ev_banned = set(ev_banned)
         for d in ev["decks"]:
             where = f"{path.name} #{d['no']} {d['name']}"
             if not d["orig"] or not d["cards"]:
@@ -524,6 +536,15 @@ def main():
     guesses = parse_substitutes(NOTES / "substitutes.md")
     sv_cards, ranked, ut_cards = load_cache()
     res = Resolver(sv_cards)
+    ko_path = CACHE / "ut_cards_ko.json"
+    if not ko_path.exists():
+        raise SystemExit("[오류] 한국어 카드 캐시가 없습니다. 먼저 python3 tools/fetch_sv.py 를 실행하세요.")
+    ko_cards = {c["defId"]: c for c in json.loads(ko_path.read_text(encoding="utf-8"))}
+    card_names = {}
+    for cid, c in res.by_id.items():
+        ko_name = ko_cards.get(cid, {}).get("name", "")
+        if re.search(r"[가-힣]", ko_name):
+            card_names[c["name"]] = ko_name
     REL.update(release_dates(ut_cards))
     fetched = datetime.fromisoformat(ranked["fetchedAt"]).date()
     RECENT_CUT[0] = fetched - timedelta(days=RECENT_DAYS)
@@ -626,8 +647,18 @@ def main():
 
     events = build_events(res, unowned, set(banned))
 
-    used = set()
+    page = (ROOT / "index.html").read_text(encoding="utf-8")
+    page_cards = set(re.findall(r'\bdata-card="([A-Za-z0-9]+)"', page))
+    abilities = set(re.findall(r'\bdata-card-ability="([A-Za-z0-9]+)"', page))
+    used = page_cards | abilities
+    if missing := used - res.by_id.keys():
+        raise SystemExit(f"[오류] 페이지 카드 ID를 찾을 수 없습니다. {', '.join(sorted(missing))}")
     for ev in events:
+        for pack in ev.get("packs", []):
+            used.update(pack["ids"])
+        for tip in ev.get("guide", []):
+            used.update(tip["ids"])
+        used.update(ev.get("bannedIds", []))
         for d in ev["decks"]:
             used |= set(d["ids"])
             if d["alt"]:
@@ -649,6 +680,9 @@ def main():
               "rel": REL[cid].isoformat() if REL.get(cid) else None}
         for cid in sorted(used)
     }
+    for cid in abilities:
+        detail = ko_cards.get(cid, {}).get("description") or res.by_id[cid].get("ability") or ""
+        cards[cid]["ability"] = html.unescape(re.sub(r"<[^>]+>", "", detail))
     key = lambda c: (cards[c]["cost"], cards[c]["name"])
     for ev in events:
         for d in ev["decks"]:
@@ -672,6 +706,7 @@ def main():
                          "minGames": MIN_GAMES, "minWr": MIN_WR, "minPred": MIN_PRED,
                          "recentCut": RECENT_CUT[0].isoformat(), "lists": len(db)},
         "cards": cards,
+        "cardNames": card_names,
         "decks": out_decks,
         "excluded": excluded,
         "discovered": discovered,
