@@ -292,10 +292,13 @@ def parse_event(path: Path):
         for row in parse_table("\n".join(pack_lines)):
             if row[0] == "팩":
                 continue
-            if len(row) != 4:
-                raise SystemExit(f"[오류] {path.name} 스타터 팩: 4열 필요 — {row}")
-            name, cards, match, run = row
-            packs.append({"name": name, "cards": cards, "match": match, "run": run})
+            if len(row) not in (4, 5):
+                raise SystemExit(f"[오류] {path.name} 스타터 팩: 4열 또는 운영법 포함 5열 필요 — {row}")
+            name, cards, match, run, *play = row
+            pack = {"name": name, "cards": cards, "match": match, "run": run}
+            if play and play[0]:
+                pack["play"] = strip_md(play[0])
+            packs.append(pack)
         event.update({"packs": packs, "guide": guide, "sources": sources})
     return event
 

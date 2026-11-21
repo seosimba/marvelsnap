@@ -245,6 +245,11 @@ td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .draft-packs td.num { font-size: 18px; font-weight: 800; color: var(--accent); }
 .draft-packs td small { display: block; margin-top: 2px; color: var(--text-2); font-size: 12px; font-weight: 400; }
 .draft-packs tbody tr:first-child { background: var(--accent-soft); }
+.draft-packs .has-play td { border-bottom: 0; }
+.draft-play > td { padding-top: 0; }
+.draft-play details { margin: 0; padding: 0 10px; background: var(--surface-2); }
+.draft-play summary { padding: 7px 0; color: var(--accent); font-size: 13px; }
+.draft-play p { margin: 0 0 9px; color: var(--text-2); font-size: 13px; }
 .pack-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 76px)); gap: 3px; }
 .draft-packs td:first-child > b { display: block; margin-bottom: 4px; }
 .season-card { min-width: 132px; }
@@ -879,12 +884,14 @@ window.__snapBoot = function () {
       return `<td class="num">${esc(rate)}${sample ? `<small>${esc(sample)}</small>` : ""}</td>`;
     };
     return `
-      <h3 class="sub" id="${esc(eventAnchor(ev))}">스타터 팩 전적</h3>
+      <h3 class="sub" id="${esc(eventAnchor(ev))}">스타터 팩 전적·운영법</h3>
       <p class="event-lead" id="packs-${esc(ev.asOf)}">${esc(ev.info["데이터"])}</p>
       <div class="tbl-wrap" role="region" aria-label="스타터 팩 전적 표" tabindex="0">
         <table class="draft-packs" aria-describedby="packs-${esc(ev.asOf)}">
           <thead><tr><th scope="col">스타터 팩</th><th scope="col">경기 승률</th><th scope="col">5승률</th></tr></thead>
-          <tbody>${ev.packs.map((p) => `<tr><td><b>${ko(p.name)} 스타터</b><div class="pack-cards">${p.ids.map((id) => fig(id, "draft")).join("")}</div></td>${statCell(p.match)}${statCell(p.run)}</tr>`).join("")}</tbody>
+          <tbody>${ev.packs.map((p) => `
+            <tr${p.play ? ' class="has-play"' : ""}><td><b>${ko(p.name)} 스타터</b><div class="pack-cards">${p.ids.map((id) => fig(id, "draft")).join("")}</div></td>${statCell(p.match)}${statCell(p.run)}</tr>
+            ${p.play ? `<tr class="draft-play"><td colspan="3"><details><summary aria-label="${ko(p.name)} 스타터 운영법">운영법</summary><p>${ko(p.play)}</p></details></td></tr>` : ""}`).join("")}</tbody>
         </table>
       </div>
       <h3 class="sub">팩을 고른 뒤</h3>
