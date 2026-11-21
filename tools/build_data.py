@@ -229,10 +229,11 @@ def apply_guess(b, swaps, res, unowned, banned, db_by_sig):
 
 
 def parse_event(path: Path):
-    """notes/event-*.md — 이벤트 모드(LTGM) 덱 노트. 형식은 노트 머리말 참고."""
+    """notes/event-*.md — 이벤트 모드별 덱 또는 드래프트 스타터 팩 노트."""
     text = path.read_text(encoding="utf-8")
     title = text.splitlines()[0].lstrip("# ").strip()
     info, decks, skipped = {}, [], []
+    pack_lines, guide, sources = [], [], []
     sec, cur = None, None
     for line in text.splitlines():
         s = line.strip()
@@ -270,16 +271,38 @@ def parse_event(path: Path):
                 cur["notes"].append(strip_md(s[len("- 메모:"):]))
         elif sec == "고르지 않은 상위 덱" and s.startswith("- "):
             skipped.append(strip_md(s[2:]))
+        elif sec == "스타터 팩" and s.startswith("|"):
+            pack_lines.append(s)
+        elif sec == "픽 가이드" and s.startswith("- "):
+            guide.append(strip_md(s[2:]))
+        elif sec == "출처":
+            m = re.fullmatch(r"- \[([^\]]+)\]\((https://[^\s)]+)\)", s)
+            if m:
+                sources.append({"label": m[1], "url": m[2]})
     dates = re.findall(r"\d{4}-\d{2}-\d{2}", info.get("기간", ""))
-    return {"file": path.name, "asOf": re.search(r"(\d{4}-\d{2}-\d{2})", path.name).group(1), "title": title,
-            "info": info, "start": dates[0] if dates else None, "end": dates[1] if len(dates) > 1 else None,
-            "decks": decks, "skipped": skipped}
+    filename = re.fullmatch(r"event-(.+)-(\d{4}-\d{2}-\d{2})", path.stem)
+    if not filename:
+        raise SystemExit(f"[오류] 이벤트 노트 파일명: {path.name}")
+    event = {"file": path.name, "mode": filename[1], "asOf": filename[2], "title": title,
+             "info": info, "start": dates[0] if dates else None, "end": dates[1] if len(dates) > 1 else None,
+             "decks": decks, "skipped": skipped}
+    if pack_lines:
+        packs = []
+        for row in parse_table("\n".join(pack_lines)):
+            if row[0] == "팩":
+                continue
+            if len(row) != 4:
+                raise SystemExit(f"[오류] {path.name} 스타터 팩: 4열 필요 — {row}")
+            name, cards, match, run = row
+            packs.append({"name": name, "cards": cards, "match": match, "run": run})
+        event.update({"packs": packs, "guide": guide, "sources": sources})
+    return event
 
 
 def build_events(res, unowned, banned):
     """이벤트 노트 → 페이지용 데이터. 미보유 카드는 모두 대체돼야 하고, 넣는 카드는 보유·비선호 아님·이벤트 금지 아님."""
     events = []
-    for path in sorted(NOTES.glob("event-*.md"), reverse=True):
+    for path in sorted(NOTES.glob("event-*.md"), key=lambda p: p.stem[-10:], reverse=True):
         ev = parse_event(path)
         ev_banned = set()
         for n in ev["info"].get("금지 카드", "").split(","):
@@ -673,7 +696,8 @@ def main():
     for e in excluded:
         print(f"  제외: #{e['no']} {e['name']} ({e['games']}판) — {', '.join(e['reasons'])}")
     for ev in events:
-        print(f"  이벤트: {ev['file']} ({ev['start']} ~ {ev['end']}) 덱 {len(ev['decks'])}개")
+        count = f"팩 {len(ev['packs'])}개" if ev.get("packs") else f"덱 {len(ev['decks'])}개"
+        print(f"  이벤트: {ev['file']} ({ev['start']} ~ {ev['end']}) {count}")
 
 
 if __name__ == "__main__":

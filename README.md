@@ -7,7 +7,7 @@
 - `notes/unowned.md` — **없는 카드** (덱은 목록에 남기고 빨간 ✕ + 내 카드로 대체 예측)
 - `notes/disliked.md` — **싫어하는 카드** (들어간 덱은 순위에서 빼고 제외 이유 표시, 대체 카드로도 추천 안 함)
 - `notes/substitutes.md` — **Claude 추측 대체 카드** (데이터로 예측 못 하는 덱용, 승률 없음·이유 포함)
-- `notes/event-<모드>-YYYY-MM-DD.md` — **이벤트 모드(기간 한정) 덱** (페이지 맨 위 '이벤트' 섹션, 형식은 파일 머리말). 기간이 지나면 접힌 '종료'로 표시
+- `notes/event-<모드>-YYYY-MM-DD.md` — **기간 한정 모드**. 파일명의 모드별로 탭이 생기며 지난 회차도 볼 수 있다. [폭주 매치 덱 형식](notes/event-high-voltage-2026-11-15.md) · [드래프트 스타터 팩 형식](notes/event-draft-2026-11-21.md)
 - `tools/fetch_sv.py` — SnapVault 공개 API에서 카드 목록 + 랭크 7일 덱 통계를 `cache/`에 저장 (커밋 안 함)
 - `tools/build_data.py` — 노트 + 컬렉션 + 캐시 → `data.js`
   - 덱마다 12장 검증, 플렉스 슬롯은 빌드별로 펼침
